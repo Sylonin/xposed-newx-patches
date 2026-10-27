@@ -21,13 +21,13 @@ It works on its own and alongside piko-newx.
 
 ## Features
 
-- **Badges**: X-Posed's badge after names in post headers, quotes, user lists, sheets and
+- **Badges**: X-Posed's badge after names in post and reply headers, quotes, user lists, sheets and
   messages: country flag, optional device icon and location-warning shield, and the circled-i.
   X draws it as one of the name's badges, next to the verified badge. Badges are not shown on
   the profile page header.
 - **Account sheet**: tap a badge to see what X reports about the account (country, connection
   source, location accuracy, affiliation) and highlight or hide posts from that country.
-- **Country filters**: highlight (default) or hide posts from chosen countries or X regions.
+- **Country filters**: highlight (default) or hide posts and replies from chosen countries or X regions.
   A filtered quoted account only affects its quote card.
 - **No passive engagement**: impressions, viewing time, video views and opening of filtered
   posts aren't reported to X. Likes, replies and reposts still are.

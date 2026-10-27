@@ -73,7 +73,8 @@ private class BadgeModel(
     val image: MethodReference,
     val listType: String,
     val toImmutableList: MethodReference,
-    val nameRow: Method,
+    /** Name rows, each with the index of its handle parameter. */
+    val nameRows: List<Pair<Method, Int>>,
 )
 
 @Suppress("unused")
@@ -128,20 +129,23 @@ val accountBadgesPatch = bytecodePatch(
             )
         }
 
-        // Name row: (name, "@handle", badges, modifier, ...). Our item is appended to badges.
-        mutableMethodOf(badges.nameRow).apply {
-            replaceComposableArgument(
-                badges.nameRow,
-                2,
-                """
-                move-object/16 v0, ${parameterRegister(1)}
-                move-object/16 v1, ${parameterRegister(2)}
-                invoke-static { v0, v1 }, $HOOKS_CLASS->onNameRow(Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/Object;
-                move-result-object v0
-                if-eq v0, v1, :xposed_original
-                check-cast v0, ${badges.listType}
-                """,
-            )
+        // Name rows: (name, ..., badges, ..., "@handle", ...). Our item is appended to badges.
+        badges.nameRows.forEach { (nameRow, handleIndex) ->
+            val badgesIndex = nameRow.types.indexOf(badges.listType)
+            mutableMethodOf(nameRow).apply {
+                replaceComposableArgument(
+                    nameRow,
+                    badgesIndex,
+                    """
+                    move-object/16 v0, ${parameterRegister(handleIndex)}
+                    move-object/16 v1, ${parameterRegister(badgesIndex)}
+                    invoke-static { v0, v1 }, $HOOKS_CLASS->onNameRow(Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/Object;
+                    move-result-object v0
+                    if-eq v0, v1, :xposed_original
+                    check-cast v0, ${badges.listType}
+                    """,
+                )
+            }
         }
 
         // Affiliate badge: (item, bitmap, modifier, size, composer, changed). Ours are drawn by the extension.
@@ -178,6 +182,40 @@ val accountBadgesPatch = bytecodePatch(
                     types.count { it == MODIFIER } == 1 && COMPOSER in types
             },
         ).matchSingle().let { match ->
+            match.method.hookFilteredComposable(
+                match.originalMethod,
+                user,
+                "move-object/16 v0, ${match.method.parameterRegister(0)}\niget-object v0, v0, ${author.descriptor}",
+                match.method.types.indexOf(MODIFIER),
+            )
+        }
+
+        // Replies and condensed posts: layouts that start with the post and draw the
+        // (time, author, ...) header, which reaches a name row through the row class.
+        val rowClass = badges.composable.originalClassDef.type
+        val headers = Fingerprint(
+            isStatic = true,
+            returnType = "V",
+            custom = { method, classDef ->
+                val types = method.types
+                classDef.type != rowClass && types.size > 2 && types[0] == "Lkotlin/time/Instant;" &&
+                    types[1] == user.type && COMPOSER in types &&
+                    method.instructionList.any { it.methodRef?.definingClass == rowClass }
+            },
+        ).matchAll().map { it.originalMethod.descriptor }.toSet()
+        if (headers.isEmpty()) throw PatchException("No post header composable found")
+        val headerLayouts = Fingerprint(
+            isStatic = true,
+            returnType = "V",
+            custom = { method, _ ->
+                val types = method.types
+                types.isNotEmpty() && types[0] == post.originalClassDef.type &&
+                    types.count { it == MODIFIER } == 1 && COMPOSER in types &&
+                    method.instructionList.any { it.methodRef?.descriptor in headers }
+            },
+        ).matchAll()
+        if (headerLayouts.isEmpty()) throw PatchException("No reply post layout found")
+        headerLayouts.forEach { match ->
             match.method.hookFilteredComposable(
                 match.originalMethod,
                 user,
@@ -446,11 +484,15 @@ private fun BytecodePatchContext.resolveBadges(): BadgeModel {
     val listType = badgeRow.types.filter { type ->
         type.startsWith("L") && classDefByOrNull(type)?.interfaces?.contains("Ljava/util/List;") == true
     }.single("badge list parameter of ${badgeRow.name}")
-    val nameRow = rowClass.methods.filter { method ->
+    // Name rows lay out (name, ..., badges, ..., "@handle", ...): the post and user row, and
+    // the reply header's row, which also shows the time.
+    fun handleIndex(types: List<String>) = types.indices.firstOrNull { it > 0 && types[it] == STRING }
+    val nameRows = rowClass.methods.filter { method ->
         val t = method.types
-        method.isStatic && t.size > 3 && t[0] == STRING && t[1] == STRING && t[2] == listType && COMPOSER in t &&
+        method.isStatic && t.size > 3 && t[0] == STRING && listType in t && COMPOSER in t && handleIndex(t) != null &&
             method.instructionList.any { it.methodRef?.descriptor == badgeRow.descriptor }
-    }.single("name row in ${rowClass.type}")
+    }.map { it to handleIndex(it.types)!! }
+    if (nameRows.isEmpty()) throw PatchException("No name row in ${rowClass.type}")
 
     val toImmutableList = Fingerprint(
         isStatic = true,
@@ -471,7 +513,7 @@ private fun BytecodePatchContext.resolveBadges(): BadgeModel {
         image = image,
         listType = listType,
         toImmutableList = toImmutableList,
-        nameRow = nameRow,
+        nameRows = nameRows,
     )
 }
 

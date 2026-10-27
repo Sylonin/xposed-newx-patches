@@ -39,16 +39,22 @@ with a `PatchException`. The names below are from 12.37.2-prod.01 and are only e
   `BitmapPainter`, `Modifier.size(w, h)` and `clickable`, because `y.a` crops to a square.
 - The badge row (the method in the same class that calls `y.a` and tests `instance-of x2`)
   gives the badge list type, `kotlinx.collections.immutable.b`.
-- The name row, `(name, "@handle", badges, Modifier, ...)` (`y.o`), gets an `xposed:` item
-  appended through `Hooks.onNameRow`. The patch clears the list's `$changed` bits so the row
-  compares the new list with the last one. `NameBadges` returns the same list object for the
-  same inputs, so unchanged rows still skip.
+- The name rows get an `xposed:` item appended through `Hooks.onNameRow`. They are the
+  static methods in the same class that call the badge row and take `(name, ...)` first, the
+  badge list and a later `String`, the handle: `y.o` for post headers and user rows, and
+  `y.e` for the reply header, which also shows the time. The patch clears the list's
+  `$changed` bits so the row compares the new list with the last one. `NameBadges` returns
+  the same list object for the same inputs, so unchanged rows still skip.
 - The profile page header builds its name line with other composables and is not hooked.
 
 ## Filters
 
 - The post composable: static, first parameter the `AvailablePost` type (from
   `"AvailablePost(entryId="`), second its `authorAppealPivot` type (`z1.a`).
+- Reply and condensed layouts: static composables whose first parameter is the
+  `AvailablePost` type and that call a `(Instant, User, ...)` header which reaches the
+  name row class (`ComparisonsKt.c` for replies, `h.a` for condensed posts). Their header
+  path is `f1.f`, then `y.f`, then `y.e`.
 - Quote cards: of the composables with consecutive parameters `(User, Instant, String)`, the
   one that calls the others (`quote.b.c`).
 - Both call `Hooks.onPost(screenName, userId, modifier)` at entry. `Hooks.HIDE` returns at
