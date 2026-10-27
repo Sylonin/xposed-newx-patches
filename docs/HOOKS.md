@@ -1,36 +1,93 @@
-# Hook map (X 12.19.1-release.0)
+# Hook map (NewX, X 12.34 to 12.37)
 
-Found by decompiling the APKM with jadx. Obfuscated names are only valid for this version;
-fingerprint by the strings/classes noted instead.
+NewX is the Jetpack Compose rewrite of X. R8 renames almost every class and member, and the
+names change between releases. The patch therefore never names an obfuscated member. It finds
+each one at patch time from something stable: a `toString` string, a kept type, a signature
+shape or the code around it. If any of these finds zero or several candidates, the patch stops
+with a `PatchException`. The names below are from 12.37.2-prod.01 and are only examples.
 
-## Lookups: `com.x.repositories.profile.u` (DefaultAboutProfileRepository)
-- Constructor takes `com.x.repositories.graphql.g` (the app's authenticated GraphQL client).
-- `a(UserIdentifier, ContinuationImpl)`: AboutProfileQuery by user id (suspend fun).
-- `b(String screenName, ContinuationImpl)`: AboutProfileByScreenNameQuery (suspend fun).
-- Returns `com.x.result.b` (`b.C4676b` = success holding `a.C4648a(MinimalUser, ProfileAboutMetadata)`).
-- Fingerprint strings: `"Missing GraphqlUser.screen_name for "`, `"mapper on "`;
-  continuation classes `s`/`t` carry `@DebugMetadata(c = "com.x.repositories.profile.DefaultAboutProfileRepository")`.
-- `com.x.models.profile.ProfileAboutMetadata` holds account_based_in, source, location_accurate, etc.
+## Shared tools (`patches/.../util`)
 
-## Timeline entries (hide mode)
-- `JsonTimelineEntry$$JsonObjectMapper.parse` and `JsonTimelineModuleItem$$JsonObjectMapper.parse`
-  (unobfuscated). Piko hooks the same spots to drop ads; returning null removes the entry.
-- `GraphqlJsonTwitterUser$$JsonObjectMapper` parses every user in a response. Good place to
-  prefetch lookups before views bind. It also has an `about_profile` field (`Q0`), but timeline
-  queries don't request it.
+- `toStringFields`: maps the labels of a data class's `toString` ("AvailablePost(entryId=")
+  to its fields. It follows the outlined `StringBuilder` helpers R8 creates, whose argument
+  order is shuffled, and treats one-field formatters (value class `toString`) as the field.
+- `RegisterFlow`: a small dataflow analysis over all paths of a method (branches, switches,
+  exception handlers). It tracks parameters, constants, static fields and `parameter & mask`.
+- `composableParameter`: uses `RegisterFlow` to find which bits of a composable's `$changed`
+  and `$default` ints belong to one parameter. R8 removes unused ints and reorders them, so
+  they can't be derived from the signature.
+- `ComposeBridge` (extension): static stubs whose bodies the patch writes with the resolved
+  Compose members. The extension calls Compose only through it.
 
-## Post header (badges)
-- `com.twitter.ui.tweet.TweetHeaderView.c(String name, String username, String timestamp, List badges)`
-  = setData. Callers: `tweetview/core/ui/tweetheader/c.java` (main timeline), `timeline/itembinder/b.java`,
-  `explore/timeline/events/r.java`, `longform/threadreader/implementation/o.java`, `app/profiles/prompt/h.java`.
-- MVP badge: decorate `username` with flag and device emoji at the start of `c()`.
+## Startup and lookups
 
-## Filters (hide/highlight)
-- Quoted posts: the quote's TweetHeaderView sits inside `com.twitter.tweetview.core.QuoteView`.
-- Rows: the RecyclerView child above the header (`androidx.recyclerview.widget.RecyclerView`, unobfuscated).
-- X resets row visibility/size after binding the header, so verdicts are re-applied in a `post()`.
+- App start: `onCreate()` of the `android.app.Application` subclass (`XApplication`) calls
+  `Hooks.onApplicationCreate`.
+- GraphQL client: the class with the string `"GraphqlApiImpl-unresolved-"`. Every constructor
+  hands `this` to `Hooks.onGraphqlApi`; lookups use the most recent one.
+- About this account: the repository with `"Missing GraphqlUser.screen_name for "` and a
+  `(String, ContinuationImpl)` method (`com.x.repositories.profile.r`). Field names come from
+  the `toString` of `ProfileAboutMetadata`, `AffiliateData`, `MinimalUser` and
+  `UserWithProfileAboutMetadata`, and reach `XAboutApi` as a spec string.
+
+## Badges
+
+- The Affiliate badge item (`com.x.ui.common.x2`, from `"Affiliate(contentDescription="`):
+  content description, image URL and click target.
+- Its composable, `(item, bitmap, Modifier, Float, Composer, Int)` (`y.a`), draws it with
+  `Image`. The hook draws items whose URL starts with `xposed:` itself, with a
+  `BitmapPainter`, `Modifier.size(w, h)` and `clickable`, because `y.a` crops to a square.
+- The badge row (the method in the same class that calls `y.a` and tests `instance-of x2`)
+  gives the badge list type, `kotlinx.collections.immutable.b`.
+- The name row, `(name, "@handle", badges, Modifier, ...)` (`y.o`), gets an `xposed:` item
+  appended through `Hooks.onNameRow`. The patch clears the list's `$changed` bits so the row
+  compares the new list with the last one. `NameBadges` returns the same list object for the
+  same inputs, so unchanged rows still skip.
+- The profile page header builds its name line with other composables and is not hooked.
+
+## Filters
+
+- The post composable: static, first parameter the `AvailablePost` type (from
+  `"AvailablePost(entryId="`), second its `authorAppealPivot` type (`z1.a`).
+- Quote cards: of the composables with consecutive parameters `(User, Instant, String)`, the
+  one that calls the others (`quote.b.c`).
+- Both call `Hooks.onPost(screenName, userId, modifier)` at entry. `Hooks.HIDE` returns at
+  once, so nothing is drawn. Any other result replaces the `Modifier` argument; the patch
+  clears its `$default` and `$changed` bits so the composable uses and compares it.
+- User model: the interface whose default `"@"` + `screenName()` method exists, with
+  `getId()` returning a type with one `long` field (`com.x.models.uh`, `ch`).
+- Highlight: `Modifier.drawWithContent` (told apart from `drawBehind` and `drawWithCache` by
+  its node's draw method), then the `android.graphics.Canvas` reached through the draw scope,
+  `CanvasDrawScope`, `DrawParams` (from `"DrawParams(density="`) and `AndroidCanvas`.
+
+## Recomposition
+
+- `MutableIntState` (from `"MutableIntState(value="`). The hooks read one state per handle
+  and one global state, so a finished lookup or a settings change recomposes exactly the rows
+  that showed the account. Lookup results reach memory and the states together, on the main
+  thread.
+
+## Theme
+
+- NewX keeps its theme in its own preferences file, `<package>_preferences`:
+  `dark_mode_state` (`"0"` off, `"1"` on, otherwise follow the system) and
+  `dark_mode_appearance` (`"dim"` or `"lights_out"`). It doesn't change the Activity's
+  configuration, so `XTheme` reads these.
+
+## Client events
+
+- Every event passes through the reporter method `(LogEvent, Boolean)` with the string
+  `"Skipping event with empty event name"` (`com.x.scribing.c1.j`). `Hooks.shouldDropEvent`
+  runs first.
+- The thrift classes under `com.x.thrift.clientapp.gen` keep their names. The patch checks
+  the fields `Engagement` uses: `LogEvent.event_name` and `items`, `Item.tweet_details`, `id`
+  and `item_type`, `TweetDetails.author_id`, `ItemType.value` and `ItemType.TWEET`.
+- Post impressions (`...:impression`) and engagement events carry an `Item` of type `TWEET`
+  with `tweet_details.author_id` set. `...:results` events mostly carry media items, and
+  quoted posts use type `QUOTED_TWEET`.
 
 ## Cloud cache (x-posed)
+
 - `GET https://x-posed-cache.xaitax.workers.dev/lookup?users=a,b` (<=100 handles), no auth.
   Result keys: l=location, d=source, a=location accurate, af=affiliation, id, t=timestamp.
 - `POST /contribute` with `{"entries": {...}}`.

@@ -1,22 +1,30 @@
-# X-Posed Patches
+# X-Posed Patches for NewX
 
 [Morphe](https://morphe.software) patches that bring
 [X-Posed](https://github.com/xaitax/x-account-location-device)'s account location badges and
-country filters to the X (Twitter) Android app.
+country filters to the Compose-based X (Twitter) Android app ("NewX"). This is a port of
+[AetherMagee/xposed-patches](https://github.com/AetherMagee/xposed-patches), which targets
+the older X 12.19.1.
 
 ## Install
 
 Add this repository as a patch source in Morphe Manager:
-https://morphe.software/add-source?github=AetherMagee/xposed-patches
+https://morphe.software/add-source?github=Sylonin/xposed-newx-patches
 
-Then patch X 12.19.1-release.0 (the APKM from APKMirror). Works on its own and alongside
-[piko](https://github.com/crimera/piko).
+Then patch the NewX APKM from APKMirror. The supported versions are the ones
+[piko-newx](https://github.com/crimera/piko-newx) supports: 12.34.0-prod.01, 12.35.0-prod.01,
+12.36.1-prod.01, 12.37.0-prod.01, 12.37.1-prod.01 and 12.37.2-prod.01. Only 12.37.2-prod.01
+has been tested. The patch finds X's code by its structure, not by its obfuscated names, and
+stops with an error instead of producing a broken app if something doesn't match.
+
+It works on its own and alongside piko-newx.
 
 ## Features
 
-- **Badges**: X-Posed's badge after names in post headers: country flag, optional device
-  icon and location-warning shield, and the circled-i. Same look and sizes as the extension,
-  drawn by X like its verified badge.
+- **Badges**: X-Posed's badge after names in post headers, quotes, user lists, sheets and
+  messages: country flag, optional device icon and location-warning shield, and the circled-i.
+  X draws it as one of the name's badges, next to the verified badge. Badges are not shown on
+  the profile page header.
 - **Account sheet**: tap a badge to see what X reports about the account (country, connection
   source, location accuracy, affiliation) and highlight or hide posts from that country.
 - **Country filters**: highlight (default) or hide posts from chosen countries or X regions.
@@ -44,15 +52,15 @@ and what X reports about them is shared back. Your X session is never sent there
 ## Patches
 
 <!-- PATCHES_START EXPANDED -->
-> **[v1.0.0](https://github.com/AetherMagee/xposed-patches/releases/tag/v1.0.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;1 patches total
+> **[v1.0.0](https://github.com/Sylonin/xposed-newx-patches/releases/tag/v1.0.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;1 patches total
 <details open>
-<summary>📦 Twitter&nbsp;&nbsp;•&nbsp;&nbsp;1 patch</summary>
+<summary>📦 NewX&nbsp;&nbsp;•&nbsp;&nbsp;1 patch</summary>
 <br>
 
 **🎯 Supported versions:**
 
-| 12.19.1-release.0 |
-| :---: |
+| 12.34.0-prod.01 | 12.35.0-prod.01 | 12.36.1-prod.01 | 12.37.0-prod.01 | 12.37.1-prod.01 | 12.37.2-prod.01 |
+| :---: | :---: | :---: | :---: | :---: | :---: |
 
 | 💊&nbsp;Patch | 📜&nbsp;Description | ⚙️&nbsp;Options |
 |----------|----------------|-----------|
@@ -71,14 +79,17 @@ Gradle plugin.
 GITHUB_ACTOR=<user> GITHUB_TOKEN=$(gh auth token) ./gradlew :patches:buildAndroid
 ```
 
-The bundle is written to `patches/build/libs/patches-<version>.mpp`. Hook notes for porting
-to new X versions are in [docs/HOOKS.md](docs/HOOKS.md).
+The bundle is written to `patches/build/libs/patches-<version>.mpp`. With Nix, `devenv shell`
+provides the toolchain and token. How the patch finds and hooks X's code is described in
+[docs/HOOKS.md](docs/HOOKS.md).
 
 ## Credits
 
 Built on [X-Posed](https://github.com/xaitax/x-account-location-device) by Alexander Hagenah
-(MIT): badge design, country and region tables, icons and the community cache. This project
-is not affiliated with X-Posed, X Corp. or Morphe.
+(MIT): badge design, country and region tables, icons and the community cache. Ported from
+[xposed-patches](https://github.com/AetherMagee/xposed-patches) by AetherMagee. Follows the
+approach of [piko](https://github.com/crimera/piko) for NewX. This project is not affiliated
+with X-Posed, X Corp. or Morphe.
 
 ## License
 
