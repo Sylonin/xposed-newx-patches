@@ -52,7 +52,7 @@ and what X reports about them is shared back. Your X session is never sent there
 ## Patches
 
 <!-- PATCHES_START EXPANDED -->
-> **[v1.0.0](https://github.com/Sylonin/xposed-newx-patches/releases/tag/v1.0.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;1 patches total
+> **[v2.0.0](https://github.com/Sylonin/xposed-newx-patches/releases/tag/v2.0.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;1 patches total
 <details open>
 <summary>📦 NewX&nbsp;&nbsp;•&nbsp;&nbsp;1 patch</summary>
 <br>

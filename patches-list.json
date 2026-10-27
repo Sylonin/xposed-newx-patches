@@ -1,6 +1,6 @@
 {
   "NOTE": "Do NOT manually edit this file. This file is automatically updated when semantic release (release.yml) runs. Manually editing this file can break your releases and break third party tools that use this file.",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "patches": [
     {
       "name": "Account location badges",
@@ -10,7 +10,7 @@
       "compatiblePackages": [
         {
           "packageName": "com.twitter.android",
-          "name": "Twitter",
+          "name": "NewX",
           "description": null,
           "apkFileType": "APKM",
           "appIconColor": "#000000",
@@ -18,7 +18,42 @@
           "formFactor": "MOBILE",
           "targets": [
             {
-              "version": "12.19.1-release.0",
+              "version": "12.34.0-prod.01",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            },
+            {
+              "version": "12.35.0-prod.01",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            },
+            {
+              "version": "12.36.1-prod.01",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            },
+            {
+              "version": "12.37.0-prod.01",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            },
+            {
+              "version": "12.37.1-prod.01",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            },
+            {
+              "version": "12.37.2-prod.01",
               "versionCodes": null,
               "isExperimental": false,
               "minSdk": null,

@@ -1,3 +1,14 @@
+## [2.0.0](https://github.com/Sylonin/xposed-newx-patches/compare/v1.0.0...v2.0.0) (2026-10-27)
+
+### ⚠ BREAKING CHANGES
+
+* X 12.19.1-release.0 (legacy views) is no longer
+supported. Use AetherMagee/xposed-patches for it.
+
+### ✨ New Features
+
+* port account location badges to NewX ([bd97e69](https://github.com/Sylonin/xposed-newx-patches/commit/bd97e69e3bd0d8253bd804df5006c169d7c0dc5a))
+
 ## 1.0.0 (2026-10-25)
 
 ### 🐛 Bug Fixes
