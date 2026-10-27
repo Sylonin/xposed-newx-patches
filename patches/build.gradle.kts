@@ -5,9 +5,9 @@ patches {
         name = "X-Posed Patches for NewX"
         description = "X-Posed account location badges for the Compose-based X (NewX)"
         source = "https://github.com/Sylonin/xposed-newx-patches"
-        author = "Sylonin, based on AetherMagee's xposed-patches"
+        author = "Sylonin. Based on AetherMagee's xposed-patches and X-Posed by Alexander Hagenah"
         contact = "na"
-        website = "https://github.com/xaitax/x-account-location-device"
+        website = "https://github.com/Sylonin/xposed-newx-patches"
         license = "GPLv3"
     }
 }
