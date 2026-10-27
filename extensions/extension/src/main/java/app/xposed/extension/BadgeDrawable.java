@@ -1,10 +1,8 @@
 package app.xposed.extension;
 
-import android.content.Context;
-import android.content.res.Configuration;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.ColorFilter;
-import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
@@ -20,10 +18,10 @@ import java.util.Map;
 /**
  * The X-Posed badge: a rounded box holding the flag, device and warning icons, a hairline
  * separator and the circled-i. Laid out in the extension's CSS px and scaled to whatever
- * height X's ImageSpan gives it, so it follows the name's font size.
+ * height it is drawn at.
  */
 final class BadgeDrawable extends Drawable {
-    /** Intrinsic size multiplier; large enough that X's span always scales us down to the line height. */
+    /** Intrinsic size multiplier, so the settings preview's ImageView scales the badge down, never up. */
     private static final int INTRINSIC_SCALE = 100;
     private static final float BORDER = 1;
     private static final float RADIUS = 6;
@@ -60,11 +58,6 @@ final class BadgeDrawable extends Drawable {
     private static final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private static final TextPaint emojiPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
     private static final RectF tmp = new RectF();
-    private static final Matrix matrix = new Matrix();
-    private static final float[] matrixValues = new float[9];
-    /** Where the badge was last drawn, in the host view's coordinates. */
-    private final RectF drawnRect = new RectF();
-    private boolean drawn;
 
     private BadgeDrawable(AccountInfo info, Settings.Badge config, boolean dark) {
         this.config = config;
@@ -108,29 +101,38 @@ final class BadgeDrawable extends Drawable {
     }
 
     /** Null when the account has nothing to show with the current style. */
-    static BadgeDrawable create(Context context, AccountInfo info) {
-        BadgeDrawable d = new BadgeDrawable(info, Settings.badge(), isDark(context));
+    static BadgeDrawable create(AccountInfo info) {
+        BadgeDrawable d = new BadgeDrawable(info, Settings.badge(), XTheme.isDark());
         return d.items.isEmpty() ? null : d;
     }
 
-    /** True when this badge would look the same for info, so a header can keep it across binds. */
-    boolean looksLike(Context context, AccountInfo info) {
-        return config == Settings.badge() && dark == isDark(context) && warning == info.hasLocationWarning()
-                && java.util.Objects.equals(location, info.location) && java.util.Objects.equals(source, info.source);
-    }
-
-    private static boolean isDark(Context context) {
-        return (context.getResources().getConfiguration().uiMode
-                & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+    /** Identifies how the badge looks, so a rendered copy can be reused while it stays the same. */
+    String key() {
+        return location + '|' + source + '|' + warning + '|' + dark + '|' + size + '|' + background + '|'
+                + showInfo + '|' + config.flags + '|' + config.devices + '|' + config.vpn;
     }
 
     float spanScale() {
         return size.spanScale;
     }
 
-    /** The badge's last drawn bounds in host view coordinates, or null before the first draw. */
-    RectF hitRect() {
-        return drawn ? drawnRect : null;
+    /** Width over height. */
+    float aspectRatio() {
+        return width / size.height;
+    }
+
+    /** Height relative to the medium size, which is as tall as X's verified badge. */
+    float relativeHeight() {
+        return size.height / BadgeStyle.Size.MEDIUM.height;
+    }
+
+    /** The badge drawn into a bitmap heightPx tall. */
+    Bitmap toBitmap(int heightPx) {
+        int widthPx = Math.max(1, Math.round(heightPx * aspectRatio()));
+        Bitmap bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888);
+        setBounds(0, 0, widthPx, heightPx);
+        draw(new Canvas(bitmap));
+        return bitmap;
     }
 
     private float detailsWidth() {
@@ -162,8 +164,6 @@ final class BadgeDrawable extends Drawable {
         Rect bounds = getBounds();
         if (bounds.isEmpty()) return;
         float s = bounds.height() / size.height;
-
-        recordPosition(canvas, bounds);
 
         canvas.save();
         canvas.translate(bounds.left, bounds.top);
@@ -233,20 +233,6 @@ final class BadgeDrawable extends Drawable {
         float dx = left + (box - w) / 2 - b.left * scale;
         float dy = top + (box - h) / 2 - b.top * scale;
         canvas.drawText(flag, dx, dy, emojiPaint);
-    }
-
-    /**
-     * Each View records into its own display list, so the canvas transform here is
-     * relative to the TweetHeaderView that hosts the span.
-     */
-    @SuppressWarnings("deprecation")
-    private void recordPosition(Canvas canvas, Rect bounds) {
-        canvas.getMatrix(matrix);
-        matrix.getValues(matrixValues);
-        float left = matrixValues[Matrix.MTRANS_X] + bounds.left;
-        float top = matrixValues[Matrix.MTRANS_Y] + bounds.top;
-        drawnRect.set(left, top, left + bounds.width(), top + bounds.height());
-        drawn = true;
     }
 
     @Override

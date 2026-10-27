@@ -2,10 +2,10 @@ group = "app.xposed"
 
 patches {
     about {
-        name = "X-Posed Patches"
-        description = "X-Posed account location badges for X"
-        source = "https://github.com/AetherMagee/xposed-patches"
-        author = "AetherMagee"
+        name = "X-Posed Patches for NewX"
+        description = "X-Posed account location badges for the Compose-based X (NewX)"
+        source = "https://github.com/Sylonin/xposed-newx-patches"
+        author = "Sylonin, based on AetherMagee's xposed-patches"
         contact = "na"
         website = "https://github.com/xaitax/x-account-location-device"
         license = "GPLv3"

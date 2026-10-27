@@ -109,6 +109,7 @@ final class SettingsScreen {
         clear.setBackground(ui.rowBackground());
         clear.setOnClickListener(v -> {
             Lookup.clear();
+            States.changedAll();
             clear.setText("Cleared");
             clear.setTextColor(ui.secondary);
         });
@@ -132,7 +133,7 @@ final class SettingsScreen {
     private void changed() {
         updatePreview();
         if (highlightPreview != null) highlightPreview.invalidate();
-        HeaderBadges.refreshAll();
+        States.changedAll();
     }
 
     /** "@example" with a badge, like the extension's preview: an account with a location warning. */
@@ -140,7 +141,7 @@ final class SettingsScreen {
         preview.removeAllViews();
         preview.addView(ui.text("@example", 15, false, ui.secondary));
         AccountInfo sample = new AccountInfo("Switzerland", "Switzerland App Store", false, null, 0, AccountInfo.ORIGIN_X, 0);
-        BadgeDrawable badge = BadgeDrawable.create(context, sample);
+        BadgeDrawable badge = BadgeDrawable.create(sample);
         if (badge == null) return;
         ImageView image = new ImageView(context);
         image.setImageDrawable(badge);
@@ -171,7 +172,7 @@ final class SettingsScreen {
         body.addView(ui.text("This is how posts from countries you filter look in your timeline.", 15, false, ui.text));
         post.addView(body, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
 
-        FilterViews.Highlight highlight = new FilterViews.Highlight(context);
+        Highlight highlight = new Highlight(ui.dark, context.getResources().getDisplayMetrics().density);
         post.getOverlay().add(highlight);
         post.addOnLayoutChangeListener(highlight);
         return post;
@@ -443,7 +444,7 @@ final class SettingsScreen {
                 String name = shown.get(position);
                 if (!selected.remove(name)) selected.add(name);
                 Filters.save(selected, Settings.highlightMode());
-                HeaderBadges.refreshAll();
+                States.changedAll();
                 notifyDataSetChanged();
             });
             body.addView(listView, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));

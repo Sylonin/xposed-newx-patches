@@ -1,94 +1,164 @@
 package app.xposed.patches.twitter.badges
 
 import app.morphe.patcher.Fingerprint
-import app.xposed.patches.twitter.Constants.HOOKS_CLASS
+import app.xposed.patches.twitter.util.Abstract
+import app.xposed.patches.twitter.util.RegisterFlow
+import app.xposed.patches.twitter.util.instructionList
+import app.xposed.patches.twitter.util.isInterface
+import app.xposed.patches.twitter.util.methodRef
 import com.android.tools.smali.dexlib2.Opcode
 
-/** TweetHeaderView.setData(name, username, timestamp, badges). */
-internal object TweetHeaderSetDataFingerprint : Fingerprint(
-    definingClass = "Lcom/twitter/ui/tweet/TweetHeaderView;",
+internal const val MODIFIER = "Landroidx/compose/ui/Modifier;"
+internal const val COMPOSER = "Landroidx/compose/runtime/Composer;"
+internal const val FUNCTION0 = "Lkotlin/jvm/functions/Function0;"
+internal const val FUNCTION1 = "Lkotlin/jvm/functions/Function1;"
+internal const val STRING = "Ljava/lang/String;"
+internal const val LOG_EVENT = "Lcom/x/thrift/clientapp/gen/LogEvent;"
+
+/** XApplication.onCreate. */
+internal object ApplicationOnCreateFingerprint : Fingerprint(
+    name = "onCreate",
     returnType = "V",
-    parameters = listOf("Ljava/lang/String;", "Ljava/lang/String;", "Ljava/lang/String;", "Ljava/util/List;"),
+    parameters = listOf(),
+    custom = { _, classDef -> classDef.superclass == "Landroid/app/Application;" },
 )
 
-/** UsernameBadge.toString(); its class holds the (ImageSpan, String) constructor. */
-internal object UsernameBadgeToStringFingerprint : Fingerprint(
-    name = "toString",
-    strings = listOf("UsernameBadge(span="),
+/** A GraphqlApiImpl method; its instances are the app's authenticated GraphQL clients. */
+internal object GraphqlApiFingerprint : Fingerprint(
+    strings = listOf("GraphqlApiImpl-unresolved-"),
 )
 
-/** DefaultAboutProfileRepository's user mapper; other mappers share the string. */
-internal object AboutProfileRepositoryFingerprint : Fingerprint(
+/** The about-profile repository's user mapper; other mappers share the string. */
+internal object AboutRepositoryFingerprint : Fingerprint(
     strings = listOf("Missing GraphqlUser.screen_name for "),
     custom = { _, classDef ->
         classDef.methods.any { method ->
             method.parameterTypes.map { it.toString() } ==
-                listOf("Ljava/lang/String;", "Lkotlin/coroutines/jvm/internal/ContinuationImpl;")
+                listOf(STRING, "Lkotlin/coroutines/jvm/internal/ContinuationImpl;")
         }
     },
 )
 
-/** GraphqlApiImpl constructor; the instance is the app's authenticated GraphQL client. */
-internal object GraphqlApiConstructorFingerprint : Fingerprint(
-    name = "<init>",
-    strings = listOf("apolloService", "transactionEnforcer", "accountSuspensionHandler"),
-)
-
-internal object UsernameBadgeClassExtensionFingerprint : Fingerprint(
-    definingClass = HOOKS_CLASS,
-    name = "usernameBadgeClass",
-)
-
-internal object AboutRepositoryClassExtensionFingerprint : Fingerprint(
-    definingClass = HOOKS_CLASS,
-    name = "aboutRepositoryClass",
-)
-
-/** TwitterUser.toString(); names the user id and username fields. */
-internal object TwitterUserToStringFingerprint : Fingerprint(
+internal object UserWithAboutToStringFingerprint : Fingerprint(
     name = "toString",
-    strings = listOf("TwitterUser{userId=", ", username='"),
+    strings = listOf("UserWithProfileAboutMetadata(user="),
 )
 
-/** ScribeLog's JSON writer; names the items field. The thrift LogEvent serializer shares its keys. */
-internal object ScribeLogSerializeFingerprint : Fingerprint(
-    strings = listOf("_category_", "format_version", "referring_event", "items", "hardware_information"),
-    custom = { _, classDef -> classDef.type.startsWith("Lcom/twitter/analytics/") },
+internal object AboutMetadataToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("ProfileAboutMetadata(basedInCountry="),
 )
 
-/** ScribeLog's event name getter: "android:" + name. */
-internal object ScribeLogEventNameFingerprint : Fingerprint(
-    classFingerprint = ScribeLogSerializeFingerprint,
-    returnType = "Ljava/lang/String;",
-    parameters = listOf(),
-    strings = listOf("android:"),
+internal object AffiliateDataToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("AffiliateData(url="),
 )
 
-/** ScribeItem's JSON writer; names the tweet details and author id fields. */
-internal object ScribeItemSerializeFingerprint : Fingerprint(
-    strings = listOf("item_type", "promoted_id", "tweet_details", "author_id"),
-    custom = { _, classDef -> classDef.type.startsWith("Lcom/twitter/analytics/") },
+internal object MinimalUserToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("MinimalUser(id="),
 )
 
-/** The composite event reporter every client event goes through. */
-internal object EventDispatchFingerprint : Fingerprint(
+/** The Affiliate item of a name's badge list. */
+internal object AffiliateBadgeToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("Affiliate(contentDescription="),
+)
+
+internal object AvailablePostToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("AvailablePost(entryId="),
+)
+
+/** The client event reporter every LogEvent goes through. */
+internal object EventReporterFingerprint : Fingerprint(
     returnType = "V",
-    parameters = listOf("Lcom/twitter/util/user/UserIdentifier;", "Lcom/twitter/util/eventreporter/f;"),
+    parameters = listOf(LOG_EVENT, "Z"),
+    strings = listOf("Skipping event with empty event name"),
+)
+
+/** The User interface's default handle(): "@" + screenName(). */
+internal object UserHandleFingerprint : Fingerprint(
+    returnType = STRING,
+    parameters = listOf(),
+    strings = listOf("@"),
     custom = { method, classDef ->
-        val instructions = method.implementation?.instructions?.toList().orEmpty()
-        // The buffering reporter has the same signature but synchronizes instead of fanning out.
-        classDef.type.startsWith("Lcom/twitter/util/eventreporter/") &&
-            instructions.none { it.opcode == Opcode.MONITOR_ENTER } &&
-            instructions.any { it.opcode == Opcode.INVOKE_INTERFACE }
+        val first = method.instructionList.firstOrNull()
+        classDef.isInterface() &&
+            first?.opcode == Opcode.INVOKE_INTERFACE &&
+            first.methodRef!!.let { it.definingClass == classDef.type && it.parameterTypes.isEmpty() && it.returnType == STRING } &&
+            classDef.methods.any { it.name == "getId" && it.parameterTypes.isEmpty() }
     },
 )
 
-internal object TwitterUserFieldsExtensionFingerprint : Fingerprint(
-    definingClass = HOOKS_CLASS,
-    name = "twitterUserFields",
+/** CanvasDrawScope.DrawParams. */
+internal object DrawParamsToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("DrawParams(density="),
 )
 
-internal object ScribeFieldsExtensionFingerprint : Fingerprint(
-    definingClass = HOOKS_CLASS,
-    name = "scribeFields",
+/** Modifier.drawBehind, drawWithContent and drawWithCache. */
+internal object DrawModifierFactoryFingerprint : Fingerprint(
+    definingClass = "Landroidx/compose/ui/draw/",
+    isStatic = true,
+    returnType = MODIFIER,
+    parameters = listOf(MODIFIER, FUNCTION1),
+)
+
+/** Modifier.Companion, the empty modifier. */
+internal object EmptyModifierToStringFingerprint : Fingerprint(
+    name = "toString",
+    returnType = STRING,
+    parameters = listOf(),
+    strings = listOf("Modifier"),
+    custom = { _, classDef -> MODIFIER in classDef.interfaces },
+)
+
+/**
+ * Modifier.size(width, height), which is SizeElement(minWidth = width, minHeight = height,
+ * maxWidth = width, maxHeight = height, enforceIncoming = true). requiredSize passes false.
+ */
+internal object SizeModifierFingerprint : Fingerprint(
+    definingClass = "Landroidx/compose/foundation/layout/",
+    isStatic = true,
+    returnType = MODIFIER,
+    parameters = listOf(MODIFIER, "F", "F"),
+    custom = { method, _ ->
+        val flow = RegisterFlow(method)
+        val width = setOf(Abstract.Parameter(1))
+        val height = setOf(Abstract.Parameter(2))
+        val calls = flow.instructions.indices.filter { i ->
+            flow.instructions[i].methodRef?.let {
+                it.name == "<init>" && it.parameterTypes.map(CharSequence::toString) == listOf("F", "F", "F", "F", "Z")
+            } == true
+        }
+        calls.size == 1 && flow.argumentsAt(calls[0]) == listOf(width, height, width, height, setOf(Abstract.Literal(1)))
+    },
+)
+
+/**
+ * Modifier.clickable with default arguments: (modifier, enabled, onClickLabel, role,
+ * interactionSource, onClick, defaults mask). It builds ClickableElement(interactionSource,
+ * indicationNodeFactory, useLocalIndication, enabled, onClickLabel, role, onClick).
+ */
+internal object ClickableModifierFingerprint : Fingerprint(
+    definingClass = "Landroidx/compose/foundation/",
+    isStatic = true,
+    returnType = MODIFIER,
+    parameters = listOf(MODIFIER, "Z", STRING, "L", "L", FUNCTION0, "I"),
+    custom = { method, _ ->
+        method.instructionList.any { instruction ->
+            (instruction.opcode == Opcode.INVOKE_DIRECT || instruction.opcode == Opcode.INVOKE_DIRECT_RANGE) && instruction.methodRef!!.let {
+                val types = it.parameterTypes.map(CharSequence::toString)
+                it.name == "<init>" && types.size == 7 && types[2] == "Z" && types[3] == "Z" &&
+                    types[4] == STRING && types[6] == FUNCTION0
+            }
+        }
+    },
+)
+
+/** ParcelableSnapshotMutableIntState. */
+internal object MutableIntStateToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("MutableIntState(value="),
 )

@@ -144,19 +144,18 @@ final class Lookup {
     }
 
     private static void loadDisk() {
+        Map<String, AccountInfo> loaded = new LinkedHashMap<>();
         try {
             long now = System.currentTimeMillis();
             Map<String, ?> all = prefs.getAll();
             List<String> expired = new ArrayList<>();
-            synchronized (memory) {
-                for (Map.Entry<String, ?> e : all.entrySet()) {
-                    AccountInfo info = e.getValue() instanceof String ? AccountInfo.fromJson((String) e.getValue()) : null;
-                    if (info == null || isStale(info, now)) {
-                        expired.add(e.getKey());
-                    } else if (memory.size() < MEMORY_LIMIT) {
-                        memory.put(e.getKey(), info);
-                        Users.put(info.userId, e.getKey());
-                    }
+            for (Map.Entry<String, ?> e : all.entrySet()) {
+                AccountInfo info = e.getValue() instanceof String ? AccountInfo.fromJson((String) e.getValue()) : null;
+                if (info == null || isStale(info, now)) {
+                    expired.add(e.getKey());
+                } else if (loaded.size() < MEMORY_LIMIT) {
+                    loaded.put(e.getKey(), info);
+                    Users.put(info.userId, e.getKey());
                 }
             }
             if (!expired.isEmpty() || all.size() > DISK_LIMIT) {
@@ -171,18 +170,22 @@ final class Lookup {
         diskLoaded = true;
 
         // Serve queued handles the disk already knew, look up the rest.
-        long now = System.currentTimeMillis();
+        List<String> served = new ArrayList<>();
         for (Iterator<String> it = cloudQueue.iterator(); it.hasNext(); ) {
             String handle = it.next();
-            AccountInfo info;
-            synchronized (memory) {
-                info = memory.get(handle);
-            }
-            if (info != null && !isStale(info, now)) {
+            if (loaded.containsKey(handle)) {
                 it.remove();
-                notifyUpdated(handle);
+                served.add(handle);
             }
         }
+        main.post(() -> {
+            synchronized (memory) {
+                memory.putAll(loaded);
+            }
+            for (String handle : served) {
+                for (Listener l : listeners) l.onAccountUpdated(handle);
+            }
+        });
         flushCloud();
     }
 
@@ -269,9 +272,6 @@ final class Lookup {
     }
 
     private static void store(String handle, AccountInfo info) {
-        synchronized (memory) {
-            memory.put(handle, info);
-        }
         Users.put(info.userId, handle);
         String json = info.toJson();
         if (json != null) {
@@ -281,11 +281,13 @@ final class Lookup {
                 worker.schedule(Lookup::flushWrites, WRITE_DELAY_MS, TimeUnit.MILLISECONDS);
             }
         }
-        notifyUpdated(handle);
-    }
-
-    private static void notifyUpdated(String handle) {
+        // Composition reads memory on the main thread. Updating it in the same step as the
+        // listeners, which recompose what shows the account, means a composable never sees the
+        // new info before whatever contains it is told to recompose.
         main.post(() -> {
+            synchronized (memory) {
+                memory.put(handle, info);
+            }
             for (Listener l : listeners) l.onAccountUpdated(handle);
         });
     }

@@ -12,10 +12,10 @@ import kotlin.coroutines.CoroutineContext;
 import kotlin.coroutines.jvm.internal.ContinuationImpl;
 
 /**
- * Calls X's own DefaultAboutProfileRepository (AboutProfileByScreenNameQuery) through
- * the app's authenticated GraphQL client. The repository is a Kotlin suspend API, so it
- * is driven with a hand-made continuation. R8 renamed most Kotlin and X members, which is
- * why everything past the class names handed over at patch time is found by shape.
+ * Calls X's own about-profile repository (AboutProfileByScreenNameQuery) through the app's
+ * authenticated GraphQL client. The repository is a Kotlin suspend API, so it is driven with
+ * a hand-made continuation. R8 renamed X's classes and fields and removed the getters, so
+ * their names come from the patch.
  */
 final class XAboutApi {
     interface Callback {
@@ -23,14 +23,13 @@ final class XAboutApi {
         void onResult(AccountInfo info, Throwable error);
     }
 
-    private static final String ABOUT_METADATA_CLASS = "com.x.models.profile.ProfileAboutMetadata";
-    private static final String MINIMAL_USER_CLASS = "com.x.models.MinimalUser";
-
     private static volatile Object graphqlApi;
     private static Object repository;
     private static Method byScreenName;
     private static CoroutineContext emptyContext;
     private static boolean broken;
+    private static Class<?> aboutClass, userClass;
+    private static Field basedIn, appSource, locationAccurate, affiliate, affiliateUsername, userId, userIdValue;
 
     private XAboutApi() {
     }
@@ -62,7 +61,19 @@ final class XAboutApi {
     private static Object repository() throws Exception {
         if (repository != null) return repository;
         try {
-            Class<?> repoClass = Class.forName(Hooks.aboutRepositoryClass());
+            // "repository|about|basedInCountry|appSource|isLocationAccurate|affiliateData|username|user|id|idValue"
+            String[] spec = Hooks.aboutApiSpec().split("\\|");
+            Class<?> repoClass = Class.forName(spec[0]);
+            aboutClass = Class.forName(spec[1]);
+            basedIn = field(aboutClass, spec[2]);
+            appSource = field(aboutClass, spec[3]);
+            locationAccurate = field(aboutClass, spec[4]);
+            affiliate = field(aboutClass, spec[5]);
+            affiliateUsername = field(affiliate.getType(), spec[6]);
+            userClass = Class.forName(spec[7]);
+            userId = field(userClass, spec[8]);
+            userIdValue = field(userId.getType(), spec[9]);
+
             Constructor<?> constructor = null;
             for (Constructor<?> c : repoClass.getConstructors()) {
                 if (c.getParameterTypes().length == 1 && c.getParameterTypes()[0].isInstance(graphqlApi)) constructor = c;
@@ -71,7 +82,7 @@ final class XAboutApi {
                 Class<?>[] t = m.getParameterTypes();
                 if (t.length == 2 && t[0] == String.class && t[1] == ContinuationImpl.class) byScreenName = m;
             }
-            if (constructor == null || byScreenName == null) throw new NoSuchMethodException("AboutProfileRepository shape changed");
+            if (constructor == null || byScreenName == null) throw new NoSuchMethodException("About repository shape changed");
             emptyContext = emptyCoroutineContext();
             repository = constructor.newInstance(graphqlApi);
             return repository;
@@ -80,6 +91,12 @@ final class XAboutApi {
             Log.e(Hooks.TAG, "X About lookups are unavailable", e);
             throw e;
         }
+    }
+
+    private static Field field(Class<?> c, String name) throws NoSuchFieldException {
+        Field f = c.getDeclaredField(name);
+        f.setAccessible(true);
+        return f;
     }
 
     /** kotlin.coroutines.EmptyCoroutineContext's singleton; its INSTANCE field is renamed in X. */
@@ -98,7 +115,7 @@ final class XAboutApi {
         return result instanceof Enum && "COROUTINE_SUSPENDED".equals(((Enum<?>) result).name());
     }
 
-    /** Unpacks com.x.result.Result -> (MinimalUser, ProfileAboutMetadata?). */
+    /** Unpacks X's Result -> (user, about metadata or null). */
     private static void deliver(Object result, Callback callback) {
         try {
             if (result == null) throw new IllegalStateException("null result");
@@ -112,44 +129,39 @@ final class XAboutApi {
             Object success = firstInstanceField(result);
             if (success == null) throw new IllegalStateException("Unexpected result " + result);
             Object about = null;
-            long userId = 0;
+            long id = 0;
             boolean hasAboutField = false;
             for (Field f : success.getClass().getDeclaredFields()) {
+                if (Modifier.isStatic(f.getModifiers())) continue;
                 f.setAccessible(true);
-                if (f.getType().getName().equals(ABOUT_METADATA_CLASS)) {
+                if (f.getType() == aboutClass) {
                     about = f.get(success);
                     hasAboutField = true;
-                } else if (f.getType().getName().equals(MINIMAL_USER_CLASS)) {
-                    userId = userId(f.get(success));
+                } else if (f.getType() == userClass) {
+                    id = userId(f.get(success));
                 }
             }
             if (!hasAboutField) throw new IllegalStateException("Unexpected payload " + success);
-            callback.onResult(about == null ? null : toInfo(about, userId), null);
+            callback.onResult(about == null ? null : toInfo(about, id), null);
         } catch (Throwable t) {
             callback.onResult(null, t);
         }
     }
 
-    /** MinimalUser.getId().getUserId(), or 0. */
-    private static long userId(Object minimalUser) {
-        try {
-            Object id = minimalUser.getClass().getMethod("getId").invoke(minimalUser);
-            return (Long) id.getClass().getMethod("getUserId").invoke(id);
-        } catch (Exception e) {
-            return 0;
-        }
+    /** The user's numeric id, or 0. */
+    private static long userId(Object user) throws IllegalAccessException {
+        Object id = user == null ? null : userId.get(user);
+        return id == null ? 0 : userIdValue.getLong(id);
     }
 
-    private static AccountInfo toInfo(Object about, long userId) throws Exception {
-        Class<?> c = about.getClass();
-        String location = (String) c.getMethod("getBasedInCountry").invoke(about);
-        String source = (String) c.getMethod("getAppSource").invoke(about);
-        boolean accurate = (Boolean) c.getMethod("isLocationAccurate").invoke(about);
-        String affiliation = null;
-        Object affiliate = c.getMethod("getAffiliateData").invoke(about);
-        if (affiliate != null) affiliation = (String) affiliate.getClass().getMethod("getUsername").invoke(affiliate);
+    private static AccountInfo toInfo(Object about, long id) throws IllegalAccessException {
+        String location = (String) basedIn.get(about);
+        String source = (String) appSource.get(about);
+        boolean accurate = locationAccurate.getBoolean(about);
+        Object affiliateData = affiliate.get(about);
+        String affiliation = affiliateData == null ? null : (String) affiliateUsername.get(affiliateData);
         return new AccountInfo(location, source, location != null ? accurate : null, affiliation,
-                System.currentTimeMillis(), AccountInfo.ORIGIN_X, userId);
+                System.currentTimeMillis(), AccountInfo.ORIGIN_X, id);
     }
 
     private static Throwable findThrowable(Object o) throws IllegalAccessException {

@@ -7,14 +7,21 @@ import app.morphe.patcher.patch.Compatibility
 object Constants {
     const val EXTENSION_PATH = "extensions/extension.mpe"
     const val HOOKS_CLASS = "Lapp/xposed/extension/Hooks;"
+    const val BRIDGE_CLASS = "Lapp/xposed/extension/ComposeBridge;"
 
-    val COMPATIBILITY_X = Compatibility(
-        name = "Twitter",
+    /** The Compose-based X ("NewX") releases piko-newx supports. */
+    val COMPATIBILITY_NEW_X = Compatibility(
+        name = "NewX",
         packageName = "com.twitter.android",
         apkFileType = ApkFileType.APKM,
         appIconColor = 0x000000,
         targets = listOf(
-            AppTarget(version = "12.19.1-release.0"),
+            AppTarget(version = "12.34.0-prod.01"),
+            AppTarget(version = "12.35.0-prod.01"),
+            AppTarget(version = "12.36.1-prod.01"),
+            AppTarget(version = "12.37.0-prod.01"),
+            AppTarget(version = "12.37.1-prod.01"),
+            AppTarget(version = "12.37.2-prod.01"),
         ),
     )
 }

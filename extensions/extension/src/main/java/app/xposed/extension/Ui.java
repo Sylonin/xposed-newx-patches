@@ -27,32 +27,24 @@ final class Ui {
 
     Ui(Context context) {
         this.context = context;
-        int bg = themeBackground(context);
         // X's light, dim and lights out palettes.
-        if (Color.luminance(bg) > 0.5f) {
-            background = 0xFFFFFFFF; text = 0xFF0F1419; secondary = 0xFF536471; divider = 0xFFEFF3F4; alert = 0xFF895314;
-            dark = false;
-        } else if (Color.red(bg) + Color.green(bg) + Color.blue(bg) < 24) {
-            background = 0xFF000000; text = 0xFFE7E9EA; secondary = 0xFF71767B; divider = 0xFF2F3336; alert = 0xFFE7B36A;
-            dark = true;
-        } else {
-            background = 0xFF15202B; text = 0xFFF7F9F9; secondary = 0xFF8B98A5; divider = 0xFF38444D; alert = 0xFFE7B36A;
-            dark = true;
+        switch (XTheme.mode()) {
+            case LIGHT:
+                background = 0xFFFFFFFF; text = 0xFF0F1419; secondary = 0xFF536471; divider = 0xFFEFF3F4; alert = 0xFF895314;
+                dark = false;
+                break;
+            case LIGHTS_OUT:
+                background = 0xFF000000; text = 0xFFE7E9EA; secondary = 0xFF71767B; divider = 0xFF2F3336; alert = 0xFFE7B36A;
+                dark = true;
+                break;
+            default:
+                background = 0xFF15202B; text = 0xFFF7F9F9; secondary = 0xFF8B98A5; divider = 0xFF38444D; alert = 0xFFE7B36A;
+                dark = true;
+                break;
         }
         pressed = dark ? 0x22FFFFFF : 0x110F1419;
         regular = font(context, "chirp_regular_400", Typeface.NORMAL);
         bold = font(context, "chirp_bold_700", Typeface.BOLD);
-    }
-
-    private static int themeBackground(Context context) {
-        TypedValue v = new TypedValue();
-        if (context.getTheme().resolveAttribute(android.R.attr.colorBackground, v, true)
-                && v.type >= TypedValue.TYPE_FIRST_COLOR_INT && v.type <= TypedValue.TYPE_LAST_COLOR_INT) {
-            return v.data;
-        }
-        boolean night = (context.getResources().getConfiguration().uiMode
-                & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES;
-        return night ? Color.BLACK : Color.WHITE;
     }
 
     private static Typeface font(Context context, String name, int fallbackStyle) {

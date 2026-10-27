@@ -134,7 +134,7 @@ final class BadgeSheet implements Lookup.Listener {
                     locations.add(info.location);
                 }
                 Filters.save(locations, Settings.highlightMode());
-                HeaderBadges.refreshAll();
+                States.changedAll();
                 render();
             });
             content.addView(toggle, Ui.matchWidth());
