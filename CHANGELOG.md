@@ -1,3 +1,9 @@
+## [2.0.1](https://github.com/Sylonin/xposed-newx-patches/compare/v2.0.0...v2.0.1) (2026-10-27)
+
+### 🐛 Bug Fixes
+
+* show badges and apply filters on replies ([d4a0de6](https://github.com/Sylonin/xposed-newx-patches/commit/d4a0de6d1ce9b5c2a9e3b3ae0ee84d8120056479))
+
 ## [2.0.0](https://github.com/Sylonin/xposed-newx-patches/compare/v1.0.0...v2.0.0) (2026-10-27)
 
 ### ⚠ BREAKING CHANGES
