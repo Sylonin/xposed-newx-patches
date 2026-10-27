@@ -87,9 +87,11 @@ provides the toolchain and token. How the patch finds and hooks X's code is desc
 
 Built on [X-Posed](https://github.com/xaitax/x-account-location-device) by Alexander Hagenah
 (MIT): badge design, country and region tables, icons and the community cache. Ported from
-[xposed-patches](https://github.com/AetherMagee/xposed-patches) by AetherMagee. Follows the
+[xposed-patches](https://github.com/AetherMagee/xposed-patches) by AetherMagee (GPLv3), which
+supplies the extension and the patch structure. Project setup and release tooling come from the
+[Morphe patches template](https://github.com/MorpheApp/morphe-patches-template). Follows the
 approach of [piko](https://github.com/crimera/piko) for NewX. This project is not affiliated
-with X-Posed, X Corp. or Morphe.
+with X-Posed, X Corp. or Morphe. Details are in [NOTICE](NOTICE).
 
 ## License
 
