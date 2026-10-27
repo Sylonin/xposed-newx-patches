@@ -129,3 +129,13 @@ local.properties
 
 # Local on-device test helper
 /scripts/
+
+# devenv and direnv
+.devenv*
+.direnv/
+devenv.local.nix
+devenv.local.yaml
+.pre-commit-config.yaml
+
+# Target APKs
+*.apkm
