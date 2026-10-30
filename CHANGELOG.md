@@ -1,3 +1,9 @@
+## [2.1.0](https://github.com/Sylonin/xposed-newx-patches/compare/v2.0.1...v2.1.0) (2026-10-30)
+
+### ✨ New Features
+
+* add X 12.38.1-prod.01 as supported target ([5400aa8](https://github.com/Sylonin/xposed-newx-patches/commit/5400aa8c1e7ac75e234d1d41fe9b4f338164e9e3))
+
 ## [2.0.1](https://github.com/Sylonin/xposed-newx-patches/compare/v2.0.0...v2.0.1) (2026-10-27)
 
 ### 🐛 Bug Fixes
