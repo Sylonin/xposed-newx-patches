@@ -13,7 +13,7 @@ https://morphe.software/add-source?github=Sylonin/xposed-newx-patches
 
 Then patch the NewX APKM from APKMirror. The supported versions are the ones
 [piko-newx](https://github.com/crimera/piko-newx) supports: 12.34.0-prod.01, 12.35.0-prod.01,
-12.36.1-prod.01, 12.37.0-prod.01, 12.37.1-prod.01 and 12.37.2-prod.01. Only 12.37.2-prod.01
+12.36.1-prod.01, 12.37.0-prod.01, 12.37.1-prod.01, 12.37.2-prod.01 and 12.38.1-prod.01. Only 12.37.2-prod.01
 has been tested. The patch finds X's code by its structure, not by its obfuscated names, and
 stops with an error instead of producing a broken app if something doesn't match.
 
@@ -59,8 +59,8 @@ and what X reports about them is shared back. Your X session is never sent there
 
 **🎯 Supported versions:**
 
-| 12.34.0-prod.01 | 12.35.0-prod.01 | 12.36.1-prod.01 | 12.37.0-prod.01 | 12.37.1-prod.01 | 12.37.2-prod.01 |
-| :---: | :---: | :---: | :---: | :---: | :---: |
+| 12.34.0-prod.01 | 12.35.0-prod.01 | 12.36.1-prod.01 | 12.37.0-prod.01 | 12.37.1-prod.01 | 12.37.2-prod.01 | 12.38.1-prod.01 |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 
 | 💊&nbsp;Patch | 📜&nbsp;Description | ⚙️&nbsp;Options |
 |----------|----------------|-----------|
