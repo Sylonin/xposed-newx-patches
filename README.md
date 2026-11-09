@@ -11,10 +11,11 @@ the older X 12.19.1.
 Add this repository as a patch source in Morphe Manager:
 https://morphe.software/add-source?github=Sylonin/xposed-newx-patches
 
-Then patch the NewX 12.40.1-prod.01 APKM from APKMirror. This is the only supported version. It
-has been tested on its own and together with [piko-newx](https://github.com/crimera/piko-newx)
-3.74.0. The patch finds X's code by its structure, not by its obfuscated names, and stops with
-an error instead of producing a broken app if something doesn't match.
+Then patch the NewX APKM from APKMirror, version 12.40.1-prod.01 or newer. The patch refuses
+older versions. 12.40.1-prod.01 has been tested on its own and together with
+[piko-newx](https://github.com/crimera/piko-newx) 3.74.0; newer versions have not. The patch
+finds X's code by its structure, not by its obfuscated names, and stops with an error instead of
+producing a broken app if something doesn't match.
 
 ## Features
 
