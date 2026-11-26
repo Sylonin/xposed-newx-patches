@@ -1,3 +1,9 @@
+## [4.3.0](https://github.com/Sylonin/xposed-newx-patches/compare/v4.2.0...v4.3.0) (2026-11-26)
+
+### ✨ New Features
+
+* add filter profiles and X-Posed's filter behavior options ([ba6a894](https://github.com/Sylonin/xposed-newx-patches/commit/ba6a894c65e99a2726ea846be75525db78b937a8))
+
 ## [4.2.0](https://github.com/Sylonin/xposed-newx-patches/compare/v4.1.0...v4.2.0) (2026-11-26)
 
 ### ✨ New Features

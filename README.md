@@ -82,7 +82,7 @@ about you; turn off "Use profile details" to keep X's requests unchanged.
 ## Patches
 
 <!-- PATCHES_START EXPANDED -->
-> **[v4.2.0](https://github.com/Sylonin/xposed-newx-patches/releases/tag/v4.2.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;1 patches total
+> **[v4.3.0](https://github.com/Sylonin/xposed-newx-patches/releases/tag/v4.3.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;1 patches total
 <details open>
 <summary>📦 NewX&nbsp;&nbsp;•&nbsp;&nbsp;1 patch</summary>
 <br>
