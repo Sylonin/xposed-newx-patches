@@ -123,7 +123,10 @@ final class NameBadges {
         return true;
     }
 
+    /** Says what the flag shows: the account location, or the country of the connection source. */
     private static String describe(AccountInfo info) {
-        return info.location != null ? "Account based in " + info.location : "Account details";
+        String shown = info.country(Settings.badge().deviceCountry);
+        if (shown == null) return "Account details";
+        return shown.equals(info.location) ? "Account based in " + shown : "Connected via " + info.source;
     }
 }

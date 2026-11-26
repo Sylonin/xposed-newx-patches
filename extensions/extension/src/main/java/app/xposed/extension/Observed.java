@@ -1,7 +1,9 @@
 package app.xposed.extension;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * What X has already loaded and the filters need later: profile details that timeline users
@@ -20,10 +22,20 @@ final class Observed {
             this.website = website;
             this.posts = posts;
         }
+
+        boolean sameAs(Profile other) {
+            return Objects.equals(location, other.location) && Objects.equals(website, other.website) && posts == other.posts;
+        }
+
+        boolean isUnknown() {
+            return location == null && website == null && posts < 0;
+        }
     }
 
     private static final Map<Long, Profile> profiles = lru(2000);
     private static final Map<Long, String> languages = lru(5000);
+    /** Which post replies to or quotes which, for hiding replies and quotes of filtered posts. */
+    static final PostRelations RELATIONS = new PostRelations();
     private static volatile long viewer;
 
     private Observed() {
@@ -38,12 +50,47 @@ final class Observed {
         };
     }
 
-    /** Called when X creates a ProfileUser, on whichever thread loads it. */
+    /** Called when X creates a ProfileUser, on whichever thread loads it. Kept only while "Use profile details" is on. */
     static void profileUser(Object user) {
-        long id = ModelBridge.userId(user);
+        if (!Settings.sources().profileDetails) return;
+        store(ModelBridge.userId(user),
+                new Profile(ModelBridge.profileLocation(user), ModelBridge.website(user), ModelBridge.postCount(user)), true);
+    }
+
+    /**
+     * Called before X maps a GraphQL user from a timeline to its user model, which drops the
+     * profile part. That part is there when {@link ProfileInfo} asked for it.
+     */
+    static void graphqlUser(Object user) {
+        if (!Settings.sources().profileDetails) return;
+        Object part = ModelBridge.graphqlProfile(user);
+        if (part == null) return;
+        String location = ModelBridge.profileOnlyLocation(part);
+        if (location != null) location = location.trim();
+        Long posts = ModelBridge.profileOnlyPostCount(part);
+        store(ModelBridge.graphqlUserId(user), new Profile(location == null || location.isEmpty() ? null : location,
+                website(ModelBridge.profileOnlyWebsite(part), ModelBridge.profileOnlyUrls(part)),
+                posts != null ? posts : -1), false);
+    }
+
+    /** The link behind the profile's t.co website, as X's profile shows it; null when it isn't among the profile's links. */
+    private static String website(String shortUrl, List<?> entities) {
+        if (shortUrl == null || entities == null) return null;
+        for (Object entity : entities) {
+            if (shortUrl.equals(ModelBridge.urlsEntityUrl(entity))) return ModelBridge.urlsEntityExpanded(entity);
+        }
+        return null;
+    }
+
+    /**
+     * Keeps the profile unless it changed, since verdicts compare it by identity. A timeline's
+     * copy without any detail (the server drops them under load) doesn't replace a known one.
+     */
+    private static void store(long id, Profile profile, boolean complete) {
         if (id == 0) return;
-        Profile profile = new Profile(ModelBridge.profileLocation(user), ModelBridge.website(user), ModelBridge.postCount(user));
         synchronized (profiles) {
+            Profile known = profiles.get(id);
+            if (known != null && (known.sameAs(profile) || !complete && profile.isUnknown())) return;
             profiles.put(id, profile);
         }
     }
@@ -54,14 +101,29 @@ final class Observed {
         }
     }
 
+    /** Forgets every profile's details, as X-Posed does when profile details are turned off. */
+    static void clearProfiles() {
+        synchronized (profiles) {
+            profiles.clear();
+        }
+    }
+
     /** Called when X creates a CanonicalPost, on whichever thread loads it. */
     static void canonicalPost(Object post) {
         long id = ModelBridge.canonicalPostId(post);
+        if (id == 0) return;
         String language = ModelBridge.language(post);
-        if (id == 0 || language == null) return;
-        synchronized (languages) {
-            languages.put(id, language);
+        if (language != null) {
+            synchronized (languages) {
+                languages.put(id, language);
+            }
         }
+        Object author = ModelBridge.canonicalAuthor(post);
+        String handle = author != null ? FilterText.handle(ModelBridge.screenName(author)) : null;
+        long authorId = author != null ? ModelBridge.userId(author) : 0;
+        Users.put(authorId, handle);
+        RELATIONS.put(new PostRelations.Relation(id, authorId, handle, language, ModelBridge.repliedPostId(post),
+                FilterText.handle(ModelBridge.repliedToHandle(post)), ModelBridge.quotedPostId(post)));
     }
 
     /** The language X detected for a post, or null. */

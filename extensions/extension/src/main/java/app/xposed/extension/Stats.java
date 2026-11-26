@@ -76,11 +76,12 @@ final class Stats {
         add(POSTS, 1);
         String handle = Users.handleFor(authorId);
         AccountInfo author = handle == null ? null : Lookup.peek(handle);
-        if (author == null || author.location == null) {
+        String country = author == null ? null : author.country(Settings.sources().deviceCountry);
+        if (country == null) {
             add(POSTS_UNKNOWN, 1);
         } else {
-            seen.merge(author.location, 1, Integer::sum);
-            if (Verdicts.forEvent(authorId, postId) != 0) filtered.merge(author.location, 1, Integer::sum);
+            seen.merge(country, 1, Integer::sum);
+            if (Verdicts.forEvent(authorId, postId) != 0) filtered.merge(country, 1, Integer::sum);
         }
         scheduleSave();
     }

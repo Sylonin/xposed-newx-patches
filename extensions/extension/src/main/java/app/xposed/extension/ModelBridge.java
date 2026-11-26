@@ -104,4 +104,84 @@ public final class ModelBridge {
     public static String language(Object canonicalPost) {
         throw notPatched();
     }
+
+    /** AvailablePost: its author, a User. */
+    public static Object postAuthor(Object availablePost) {
+        throw notPatched();
+    }
+
+    /** AvailablePost: the AvailablePost it quotes, or null when it quotes nothing or an unavailable post. */
+    public static Object quotedPost(Object availablePost) {
+        throw notPatched();
+    }
+
+    /** CanonicalPost: its author, a User, or null. */
+    public static Object canonicalAuthor(Object canonicalPost) {
+        throw notPatched();
+    }
+
+    /** CanonicalPost: the id of the post it replies to, or 0. */
+    public static long repliedPostId(Object canonicalPost) {
+        throw notPatched();
+    }
+
+    /** CanonicalPost: the handle of the account it replies to, without "@", or null. */
+    public static String repliedToHandle(Object canonicalPost) {
+        throw notPatched();
+    }
+
+    /** CanonicalPost: the id of the post it quotes, or 0. */
+    public static long quotedPostId(Object canonicalPost) {
+        throw notPatched();
+    }
+
+    /** True when a timeline host (from {@link ComposeBridge#timelineHost}) shows a curated List. */
+    public static boolean isListTimeline(Object host) {
+        throw notPatched();
+    }
+
+    /** GraphqlUser: the account's id. */
+    public static long graphqlUserId(Object graphqlUser) {
+        throw notPatched();
+    }
+
+    /** GraphqlUser: its UserProfileOnly part, null unless the query asked for profile info. */
+    public static Object graphqlProfile(Object graphqlUser) {
+        throw notPatched();
+    }
+
+    /** UserProfileOnly: the profile location as typed, or null. */
+    public static String profileOnlyLocation(Object profileOnly) {
+        throw notPatched();
+    }
+
+    /** UserProfileOnly: the website's t.co link, or null. */
+    public static String profileOnlyWebsite(Object profileOnly) {
+        throw notPatched();
+    }
+
+    /** UserProfileOnly: posts written, or null. */
+    public static Long profileOnlyPostCount(Object profileOnly) {
+        throw notPatched();
+    }
+
+    /** UserProfileOnly: the URL entities of the profile (GraphqlUrlsEntity), or null. */
+    public static List<?> profileOnlyUrls(Object profileOnly) {
+        throw notPatched();
+    }
+
+    /** GraphqlUrlsEntity: its t.co link, or null. */
+    public static String urlsEntityUrl(Object entity) {
+        throw notPatched();
+    }
+
+    /** GraphqlUrlsEntity: the link it stands for, or null. */
+    public static String urlsEntityExpanded(Object entity) {
+        throw notPatched();
+    }
+
+    /** A GraphQL operation's name, such as "HomeTimeline", or null for other objects. */
+    public static String operationName(Object operation) {
+        throw notPatched();
+    }
 }

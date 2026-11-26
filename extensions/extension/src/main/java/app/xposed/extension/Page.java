@@ -328,6 +328,28 @@ final class Page {
         field.requestFocus();
     }
 
+    /** A small card confirming an action that can't be undone; [action] runs only on the red button. */
+    void confirm(CharSequence title, CharSequence message, String actionLabel, Runnable action) {
+        Dialog d = new Dialog(context);
+        LinearLayout card = card(d, title);
+        TextView m = ui.text(message, 15, false, ui.secondary);
+        m.setPadding(ui.dp(24), 0, ui.dp(24), ui.dp(16));
+        card.addView(m);
+        LinearLayout buttons = new LinearLayout(context);
+        buttons.setGravity(Gravity.END);
+        buttons.setPadding(ui.dp(24), 0, ui.dp(24), ui.dp(8));
+        buttons.addView(ui.pill("Cancel", false, v -> d.dismiss()));
+        TextView go = ui.destructivePill(actionLabel, v -> {
+            d.dismiss();
+            action.run();
+        });
+        LinearLayout.LayoutParams goLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        goLp.setMarginStart(ui.dp(12));
+        buttons.addView(go, goLp);
+        card.addView(buttons, Ui.matchWidth());
+        d.show();
+    }
+
     private LinearLayout card(Dialog d, CharSequence title) {
         d.requestWindowFeature(Window.FEATURE_NO_TITLE);
         LinearLayout card = new LinearLayout(context);

@@ -105,4 +105,7 @@ final class Icons {
 
     /** search.svg */
     static final Glyphs.Glyph SEARCH = new Glyphs.Glyph(circle(11, 11, 8), path("m21 21-4.3-4.3"));
+
+    /** ellipsis-vertical.svg */
+    static final Glyphs.Glyph MORE = new Glyphs.Glyph(circle(12, 12, 1), circle(12, 5, 1), circle(12, 19, 1));
 }

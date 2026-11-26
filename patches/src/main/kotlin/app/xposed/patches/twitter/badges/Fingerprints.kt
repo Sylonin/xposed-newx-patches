@@ -13,6 +13,7 @@ internal const val COMPOSER = "Landroidx/compose/runtime/Composer;"
 internal const val FUNCTION0 = "Lkotlin/jvm/functions/Function0;"
 internal const val FUNCTION1 = "Lkotlin/jvm/functions/Function1;"
 internal const val STRING = "Ljava/lang/String;"
+internal const val LAYOUT_PACKAGE = "Landroidx/compose/foundation/layout/"
 internal const val LOG_EVENT = "Lcom/x/thrift/clientapp/gen/LogEvent;"
 
 /** XApplication.onCreate. */
@@ -89,6 +90,18 @@ internal object RelationshipCountsToStringFingerprint : Fingerprint(
 internal object FriendshipToStringFingerprint : Fingerprint(
     name = "toString",
     strings = listOf("Friendship(isFollowedByMe="),
+)
+
+/** A user item of a URT timeline: Followers, Following, people search, Who to follow. */
+internal object TimelineUserStateToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("TimelineUserState(user="),
+)
+
+/** A user item of a List's members timeline, wrapping a [TimelineUserStateToStringFingerprint] item. */
+internal object ListMembersUserStateToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("ListMembersTimelineUserState(timelineUserState="),
 )
 
 /** A user's highlighted label, such as the badge of the organization it is affiliated with. */

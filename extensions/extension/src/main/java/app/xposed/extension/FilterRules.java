@@ -53,6 +53,12 @@ final class FilterRules {
     final Set<String> alwaysShow;
     /** No filter applies to accounts X reports the signed-in account follows. */
     final boolean alwaysShowFollowing;
+    /** Matching posts are highlighted (X-Posed's default) rather than hidden. */
+    final boolean highlight;
+    /** In Hide mode, still highlight in curated List timelines. */
+    final boolean highlightInLists;
+    /** Hide replies and quotes of filtered posts, with "Show post", in either mode. */
+    final boolean hideRelatedPosts;
 
     final Set<String> locationKeys, coveredCountries, domains, urls;
     final String[] nameTerms, bioTerms, affiliationTerms;
@@ -91,6 +97,9 @@ final class FilterRules {
         linksMatchLocation = b.linksMatchLocation;
         alwaysShow = Collections.unmodifiableSet(new TreeSet<>(b.alwaysShow));
         alwaysShowFollowing = b.alwaysShowFollowing;
+        highlight = b.highlight;
+        highlightInLists = b.highlightInLists;
+        hideRelatedPosts = b.hideRelatedPosts;
     }
 
     /** Number of separate filters, as the saved-filters list shows them; Always Show is not counted. */
@@ -103,6 +112,14 @@ final class FilterRules {
     /** True when no filter is saved; Always Show alone filters nothing. */
     boolean isEmpty() {
         return size() == 0;
+    }
+
+    /**
+     * True when a filter reads what only a profile carries: post counts, the website, or the
+     * profile location matched by bio or link filters.
+     */
+    boolean needsProfileDetails() {
+        return minPosts > 0 || !links.isEmpty() || bioMatchesLocation && !bios.isEmpty();
     }
 
     Builder toBuilder() {
@@ -125,6 +142,9 @@ final class FilterRules {
         b.linksMatchLocation = linksMatchLocation;
         b.alwaysShow.addAll(alwaysShow);
         b.alwaysShowFollowing = alwaysShowFollowing;
+        b.highlight = highlight;
+        b.highlightInLists = highlightInLists;
+        b.hideRelatedPosts = hideRelatedPosts;
         return b;
     }
 
@@ -156,6 +176,9 @@ final class FilterRules {
             o.put("warned", warnedAccounts);
             o.put("alwaysShow", new JSONArray(alwaysShow));
             o.put("alwaysShowFollowing", alwaysShowFollowing);
+            o.put("highlight", highlight);
+            o.put("highlightInLists", highlightInLists);
+            o.put("hideRelated", hideRelatedPosts);
             return o.toString();
         } catch (JSONException e) {
             throw new IllegalStateException(e);
@@ -208,6 +231,9 @@ final class FilterRules {
         b.linksMatchLocation = o.optBoolean("linksLocation", false);
         for (String s : strings(o.optJSONArray("alwaysShow"))) b.addAlwaysShow(s);
         b.alwaysShowFollowing = o.optBoolean("alwaysShowFollowing", false);
+        b.highlight = o.optBoolean("highlight", true);
+        b.highlightInLists = o.optBoolean("highlightInLists", false);
+        b.hideRelatedPosts = o.optBoolean("hideRelated", false);
         return b.build();
     }
 
@@ -235,6 +261,8 @@ final class FilterRules {
         private long minFollowing, minPosts;
         private int minHandleDigits, minNameDigits;
         boolean warnedAccounts, bioMatchesLocation, linksMatchLocation, alwaysShowFollowing;
+        boolean highlight = true;
+        boolean highlightInLists, hideRelatedPosts;
 
         FilterRules build() {
             return new FilterRules(this);

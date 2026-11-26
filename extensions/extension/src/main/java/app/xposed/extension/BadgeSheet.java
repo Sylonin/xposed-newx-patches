@@ -183,11 +183,11 @@ final class BadgeSheet implements Lookup.Listener {
      */
     private void addQuickFilters(AccountInfo info, long userId) {
         FilterRules rules = Filters.rules();
-        boolean highlight = Settings.highlightMode();
+        boolean highlight = rules.highlight;
         String start = highlight ? "Highlight " : "Hide ";
         String stop = highlight ? "Stop highlighting " : "Stop hiding ";
-        if (info.location != null) {
-            String location = info.location;
+        String location = info.country(Settings.sources().deviceCountry);
+        if (location != null) {
             boolean filtered = rules.locationKeys.contains(Countries.canonicalKey(location));
             TextView toggle = ui.pill(filtered ? stop + location : start + "posts from " + location, !filtered, v -> {
                 Filters.edit(b -> {

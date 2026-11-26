@@ -41,6 +41,32 @@ final class FilterMatcher {
             for (Reason r : values()) if (r.in(reasons)) labels.add(r.label);
             return labels;
         }
+
+        /** The first two matched filters, "Country · Bio · +2 more", as X-Posed's placeholders name them. */
+        static String summary(int reasons) {
+            List<String> labels = labels(reasons);
+            if (labels.isEmpty()) return "Matches your filters";
+            String shown = String.join(" \u00B7 ", labels.subList(0, Math.min(2, labels.size())));
+            return labels.size() > 2 ? shown + " \u00B7 +" + (labels.size() - 2) + " more" : shown;
+        }
+    }
+
+    /**
+     * X-Posed's global data source settings, which apply to every filter profile. Compared
+     * by identity in caches, so {@link Settings} keeps one instance per combination.
+     */
+    static final class Sources {
+        static final Sources DEFAULT = new Sources(false, true);
+
+        /** Use the connection source's country for location filters ("Use device country"). */
+        final boolean deviceCountry;
+        /** Use bios, links and activity counts ("Use profile details"). */
+        final boolean profileDetails;
+
+        Sources(boolean deviceCountry, boolean profileDetails) {
+            this.deviceCountry = deviceCountry;
+            this.profileDetails = profileDetails;
+        }
     }
 
     private FilterMatcher() {
@@ -48,6 +74,9 @@ final class FilterMatcher {
 
     /** Reasons a quoted account is exempt from: they are left to the enclosing post, as in X-Posed. */
     static final int QUOTE_EXEMPT = Reason.LOCATION_WARNING.bit | Reason.LANGUAGE.bit;
+
+    /** Filters that need profile details; they stay saved but inactive while those are off. */
+    static final int PROFILE_DETAILS = Reason.BIO.bit | Reason.LINK.bit | Reason.FOLLOWING.bit | Reason.POSTS.bit;
 
     /**
      * True for accounts no filter applies to, as X-Posed's isAuthorExempt: Always Show, and
@@ -64,8 +93,12 @@ final class FilterMatcher {
      * authors match nothing, their post language included.
      */
     static int match(FilterRules rules, FilterSubject who, AccountInfo info, String language, boolean quote) {
+        return match(rules, who, info, language, quote, Sources.DEFAULT);
+    }
+
+    static int match(FilterRules rules, FilterSubject who, AccountInfo info, String language, boolean quote, Sources sources) {
         if (who != null && exempt(rules, who)) return 0;
-        return post(rules, account(rules, who, info), language, quote);
+        return post(rules, account(rules, who, info, sources), language, quote);
     }
 
     /** A post's filters from its author's account filters: adds the post language and drops what quotes ignore. */
@@ -75,11 +108,11 @@ final class FilterMatcher {
     }
 
     /** The account filters, location warnings included; the same for every post of the account. */
-    static int account(FilterRules rules, FilterSubject who, AccountInfo info) {
+    static int account(FilterRules rules, FilterSubject who, AccountInfo info, Sources sources) {
         if (rules.isEmpty() || who == null || exempt(rules, who)) return 0;
         int reasons = 0;
         if (who.userId != 0 && rules.accounts.containsKey(who.userId)) reasons |= Reason.ACCOUNT.bit;
-        reasons |= location(rules, info);
+        if (info != null) reasons |= location(rules, info.country(sources.deviceCountry));
         if (!rules.labels.isEmpty() && hasLabel(rules, who)) reasons |= Reason.LABEL.bit;
         if (rules.minFollowing > 0 && who.following >= rules.minFollowing) reasons |= Reason.FOLLOWING.bit;
         if (rules.minPosts > 0 && who.posts >= rules.minPosts) reasons |= Reason.POSTS.bit;
@@ -100,7 +133,7 @@ final class FilterMatcher {
         }
         if (rules.bioTerms.length > 0 && bioMatches(rules, who)) reasons |= Reason.BIO.bit;
         if (!rules.links.isEmpty() && linked(rules, who)) reasons |= Reason.LINK.bit;
-        return reasons;
+        return sources.profileDetails ? reasons : reasons & ~PROFILE_DETAILS;
     }
 
     /** The language filter for a post; "und" and unknown languages never match. */
@@ -109,11 +142,11 @@ final class FilterMatcher {
         return rules.languages.contains(FilterText.language(language)) ? Reason.LANGUAGE.bit : 0;
     }
 
-    private static int location(FilterRules rules, AccountInfo info) {
-        if (info == null || info.location == null || rules.locationKeys.isEmpty()) return 0;
-        String key = Countries.canonicalKey(info.location);
+    private static int location(FilterRules rules, String location) {
+        if (location == null || rules.locationKeys.isEmpty()) return 0;
+        String key = Countries.canonicalKey(location);
         if (rules.locationKeys.contains(key)) {
-            return Countries.region(info.location) != null ? Reason.REGION.bit : Reason.COUNTRY.bit;
+            return Countries.region(location) != null ? Reason.REGION.bit : Reason.COUNTRY.bit;
         }
         return rules.coveredCountries.contains(key) ? Reason.REGION.bit : 0;
     }

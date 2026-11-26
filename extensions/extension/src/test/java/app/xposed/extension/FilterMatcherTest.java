@@ -34,6 +34,40 @@ public class FilterMatcherTest {
     }
 
     @Test
+    public void placeholderSummaryNamesTwoFiltersAndCountsTheRest() {
+        assertEquals("Matches your filters", Reason.summary(0));
+        assertEquals("Country", Reason.summary(Reason.COUNTRY.bit));
+        assertEquals("Account \u00B7 Country \u00B7 +2 more",
+                Reason.summary(Reason.ACCOUNT.bit | Reason.COUNTRY.bit | Reason.BIO.bit | Reason.LANGUAGE.bit));
+    }
+
+    @Test
+    public void deviceCountryReplacesTheAccountLocationWhenChosen() {
+        FilterRules rules = rules(b -> b.addLocation("Switzerland"));
+        AccountInfo basedInGermany = new AccountInfo("Germany", "Switzerland App Store", false, null, 0,
+                AccountInfo.ORIGIN_X, 42);
+        FilterMatcher.Sources device = new FilterMatcher.Sources(true, true);
+        assertEquals(0, match(rules, user(null, null), basedInGermany));
+        assertEquals(Reason.COUNTRY.bit, FilterMatcher.match(rules, user(null, null), basedInGermany, null, false, device));
+        AccountInfo web = new AccountInfo("Switzerland", "Web", false, null, 0, AccountInfo.ORIGIN_X, 42);
+        assertEquals(Reason.COUNTRY.bit, FilterMatcher.match(rules, user(null, null), web, null, false, device));
+    }
+
+    @Test
+    public void profileDetailsOffKeepsOnlyTheOtherFilters() {
+        FilterRules rules = rules(b -> {
+            b.addBio("airdrop");
+            b.addName("bot");
+            b.setMinFollowing(10);
+        });
+        FilterSubject who = new FilterSubject("someone", 42, "a bot", "free airdrop", null, null, null, null, false,
+                null, 50, -1, false);
+        FilterMatcher.Sources noDetails = new FilterMatcher.Sources(false, false);
+        assertEquals(Reason.NAME.bit | Reason.BIO.bit | Reason.FOLLOWING.bit, match(rules, who, null));
+        assertEquals(Reason.NAME.bit, FilterMatcher.match(rules, who, null, null, false, noDetails));
+    }
+
+    @Test
     public void noFiltersMatchNothing() {
         assertEquals(0, match(FilterRules.EMPTY, user("Name 12345", "bio"), reported("Germany")));
     }

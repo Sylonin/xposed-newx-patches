@@ -57,14 +57,21 @@ final class SettingsScreen {
                 Settings.BADGE_INFO, true);
 
         page.section("Filters");
-        choice("When a post matches", "Highlighted posts stay readable; hidden posts are removed from timelines.",
-                Settings.FILTER_MODE, new String[]{"Highlight it", "Hide it"},
-                new String[]{Settings.MODE_HIGHLIGHT, Settings.MODE_HIDE}, Settings.MODE_HIGHLIGHT);
+        FilterRules rules = Filters.rules();
+        page.link(null, "Filter profile", Filters.active().name, v -> FilterScreens.showProfiles(context, this::build));
+        page.choice("When a post matches", "Highlighted posts stay readable; hidden posts are removed from timelines. "
+                        + "Saved in the filter profile.", new String[]{"Highlight it", "Hide it"},
+                new String[]{"highlight", "hide"}, rules.highlight ? "highlight" : "hide", picked -> {
+                    Filters.edit(b -> b.highlight = picked.equals("highlight"));
+                    changed();
+                });
         page.link(null, "Saved filters", FilterScreens.summary(Filters.rules()), v -> FilterScreens.showSaved(context, this::build));
         page.link(null, "Add a filter", "Countries, accounts, names, bios, links, labels, languages and more.",
                 v -> FilterScreens.showAdd(context, this::build));
         page.link(null, "Always Show", FilterScreens.alwaysShowSummary(Filters.rules()),
                 v -> FilterScreens.showAlwaysShow(context, this::build));
+        page.link(null, "Filter behavior", "Device country and profile details.",
+                v -> FilterScreens.showBehavior(context, this::build));
         highlightPreview = mockPost();
         page.add(highlightPreview);
         choice("Highlight contrast", "How strongly highlighted posts stand out. Standard matches X-Posed.",
@@ -170,7 +177,7 @@ final class SettingsScreen {
                 + (Stats.get(Stats.POSTS_UNKNOWN) > 0 ? ", " + NUMBERS.format(Stats.get(Stats.POSTS_UNKNOWN)) + " not yet looked up" : ""));
         bars(stats, seen, posts);
 
-        stats.section(Settings.highlightMode() ? "Highlighted" : "Hidden");
+        stats.section(Filters.rules().highlight ? "Highlighted" : "Hidden");
         List<Stats.Entry> filtered = Stats.top(true);
         long filteredTotal = 0;
         for (Stats.Entry e : filtered) filteredTotal += e.count;

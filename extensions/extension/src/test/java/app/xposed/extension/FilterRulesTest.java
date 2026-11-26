@@ -35,6 +35,9 @@ public class FilterRulesTest {
         b.linksMatchLocation = true;
         b.addAlwaysShow("@XaiTax");
         b.alwaysShowFollowing = true;
+        b.highlight = false;
+        b.highlightInLists = true;
+        b.hideRelatedPosts = true;
         return b.build();
     }
 
@@ -52,6 +55,31 @@ public class FilterRulesTest {
         assertTrue(copy.domains.contains("t.me"));
         assertTrue(copy.urls.contains("https://example.com/channel"));
         assertEquals("exampleorg", copy.affiliationTerms[0]);
+        assertFalse(copy.highlight);
+        assertTrue(copy.highlightInLists);
+        assertTrue(copy.hideRelatedPosts);
+        FilterRules defaults = FilterRules.fromJson("{}");
+        assertTrue(defaults.highlight);
+        assertFalse(defaults.highlightInLists || defaults.hideRelatedPosts);
+    }
+
+    @Test
+    public void onlyFiltersOnProfileOnlyDetailsAskTimelinesForThem() {
+        assertTrue(full().needsProfileDetails());
+        assertFalse(rules(b -> b.addBio("airdrop")).needsProfileDetails());
+        assertTrue(rules(b -> {
+            b.addBio("airdrop");
+            b.bioMatchesLocation = true;
+        }).needsProfileDetails());
+        assertTrue(rules(b -> b.setMinPosts(10)).needsProfileDetails());
+        assertTrue(rules(b -> b.addLink("t.me")).needsProfileDetails());
+        assertFalse(rules(b -> b.setMinFollowing(10)).needsProfileDetails());
+    }
+
+    private static FilterRules rules(java.util.function.Consumer<FilterRules.Builder> edit) {
+        FilterRules.Builder b = new FilterRules.Builder();
+        edit.accept(b);
+        return b.build();
     }
 
     @Test

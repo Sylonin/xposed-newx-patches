@@ -80,17 +80,30 @@ internal fun BytecodePatchContext.writeModelBridge(user: UserModel, availablePos
 
     val postId = postFields.field("AvailablePost", "postId")
     val viewer = postFields.field("AvailablePost", "currentUserIdentifier", user.getId.returnType)
+    val postAuthor = postFields.field("AvailablePost", "author", user.type)
+    // The quoted post's item: an AvailablePost, or an UnavailablePost without an author.
+    val quotePostState = postFields.field("AvailablePost", "quotePostState")
+    if (quotePostState.type !in availablePost.interfaces) throw PatchException("quotePostState isn't a post item")
     val postIdValue = instanceField(postId.type, "long id field of ${postId.type}") { it.type == "J" }
 
+    // Relations X-Posed follows to hide replies and quotes of filtered posts.
     val canonical = CanonicalPostToStringFingerprint.matchSingle()
     val canonicalClass = canonical.originalClassDef.type
     val canonicalFields = toStringFields(canonical.originalMethod)
     val canonicalId = canonicalFields.field("CanonicalPost", "id", postId.type)
     val language = canonicalFields.field("CanonicalPost", "language", STRING)
+    val canonicalAuthor = canonicalFields.field("CanonicalPost", "author")
+    if (canonicalAuthor.type != user.type && user.type !in classDefBy(canonicalAuthor.type).interfaces) {
+        throw PatchException("CanonicalPost.author isn't a ${user.type}")
+    }
+    val repliedPostId = canonicalFields.field("CanonicalPost", "repliedPostId", "Ljava/lang/Long;")
+    val repliedToHandle = canonicalFields.field("CanonicalPost", "repliedToUserScreenName", STRING)
+    val quotedStatusId = canonicalFields.field("CanonicalPost", "quotedStatusId", postId.type)
 
     requirePublic(
         name, bio, verifiedType, userLabel, entities, counts, pcf, friendship, following, labelDescription, urls,
-        expandedUrl, followedByMe, location, website, tweetCounts, postId, viewer, postIdValue, canonicalId, language,
+        expandedUrl, followedByMe, location, website, tweetCounts, postId, viewer, postAuthor, quotePostState, postIdValue,
+        canonicalId, language, canonicalAuthor, repliedPostId, repliedToHandle, quotedStatusId,
         *verification.values.toTypedArray(), *labels.values.toTypedArray(),
     )
 
@@ -273,11 +286,42 @@ internal fun BytecodePatchContext.writeModelBridge(user: UserModel, availablePos
     idStub("postId", availablePost.type, postId, postIdValue)
     idStub("viewerId", availablePost.type, viewer, user.idValue)
     idStub("canonicalPostId", canonicalClass, canonicalId, postIdValue)
+    idStub("quotedPostId", canonicalClass, quotedStatusId, postIdValue)
+    fun fieldStub(name: String, owner: String, field: FieldReference) = stub(
+        name, 1,
+        """
+        check-cast p0, $owner
+        iget-object v0, p0, ${field.descriptor}
+        return-object v0
+        """,
+    )
+    fieldStub("language", canonicalClass, language)
+    fieldStub("canonicalAuthor", canonicalClass, canonicalAuthor)
+    fieldStub("repliedToHandle", canonicalClass, repliedToHandle)
+    fieldStub("postAuthor", availablePost.type, postAuthor)
     stub(
-        "language", 1,
+        "repliedPostId", 2,
         """
         check-cast p0, $canonicalClass
-        iget-object v0, p0, ${language.descriptor}
+        iget-object v0, p0, ${repliedPostId.descriptor}
+        if-eqz v0, :unknown
+        invoke-virtual { v0 }, Ljava/lang/Long;->longValue()J
+        move-result-wide v0
+        return-wide v0
+        :unknown
+        const-wide/16 v0, 0x0
+        return-wide v0
+        """,
+    )
+    stub(
+        "quotedPost", 1,
+        """
+        check-cast p0, ${availablePost.type}
+        iget-object v0, p0, ${quotePostState.descriptor}
+        instance-of p0, v0, ${availablePost.type}
+        if-nez p0, :available
+        const/4 v0, 0x0
+        :available
         return-object v0
         """,
     )
@@ -315,7 +359,7 @@ private fun BytecodePatchContext.interfaceAccessor(interfaceType: String, implem
 }
 
 /** The static fields holding the constants [names] of enum [type], read from its static initializer. */
-private fun BytecodePatchContext.enumConstants(type: String, vararg names: String): Map<String, FieldReference> {
+internal fun BytecodePatchContext.enumConstants(type: String, vararg names: String): Map<String, FieldReference> {
     val classDef = classDefBy(type)
     if (!AccessFlags.ENUM.isSet(classDef.accessFlags)) throw PatchException("$type is not an enum")
     val initializer: Method = classDef.methods.firstOrNull { it.name == "<clinit>" }

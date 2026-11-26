@@ -37,6 +37,16 @@ public class CountriesTest {
     }
 
     @Test
+    public void connectionSourcesNameTheLongestCountryAtTheStart() {
+        assertEquals("switzerland", Countries.sourceCountry("Switzerland App Store"));
+        assertEquals("united states", Countries.sourceCountry("United States Android App"));
+        assertEquals(Countries.canonicalKey("Russia"), Countries.sourceCountry("Russian Federation App Store"));
+        assertNull(Countries.sourceCountry("Web"));
+        assertNull(Countries.sourceCountry("Android App"));
+        assertNull(Countries.sourceCountry(null));
+    }
+
+    @Test
     public void regionsAndTheirCountries() {
         Countries.Region southAsia = Countries.region("South Asia");
         assertNotNull(southAsia);

@@ -1,6 +1,7 @@
 package app.xposed.extension;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.text.Editable;
@@ -104,6 +105,140 @@ final class FilterScreens {
         showEditor(context, Kind.ALWAYS_SHOW, null, onClose);
     }
 
+    /** X-Posed's Behavior settings. Data sources are global; the rest belongs to the active profile. */
+    static void showBehavior(Context context, Runnable onClose) {
+        Page page = new Page(context, "Filter behavior");
+        page.section("Post filtering");
+        page.note("Saved in the filter profile " + Filters.active().name + ".");
+        FilterRules rules = Filters.rules();
+        page.toggle("Highlight matching posts in Lists", "Use Highlight in X List timelines, including Lists pinned "
+                + "to Home, even when the general setting is Hide. Other timelines keep the general setting.",
+                rules.highlightInLists, on -> Filters.edit(b -> b.highlightInLists = on));
+        page.toggle("Hide replies and quotes of filtered posts", "Hide whole replies and quotes of posts that match a "
+                + "filter, even in Highlight or Lists. Show post reveals them.",
+                rules.hideRelatedPosts, on -> Filters.edit(b -> b.hideRelatedPosts = on));
+        page.section("Data sources");
+        page.note("These apply to every filter profile.");
+        globalToggle(page, "Use device country when available", "Use the country of the app an account connects "
+                + "through, such as Switzerland App Store, for flags and location filters. Otherwise use the account "
+                + "location.", Settings.DEVICE_COUNTRY, false);
+        globalToggle(page, "Use profile details", "Use bios, links, following counts and post counts from the data X "
+                + "loads. When off, filters on them stay saved but inactive.", Settings.PROFILE_DETAILS, true);
+        if (onClose != null) page.onClose(onClose);
+        page.show();
+    }
+
+    private static void globalToggle(Page page, String title, String summary, String key, boolean def) {
+        SharedPreferences prefs = Settings.prefs();
+        page.toggle(title, summary, prefs.getBoolean(key, def), on -> {
+            prefs.edit().putBoolean(key, on).apply();
+            if (!on && key.equals(Settings.PROFILE_DETAILS)) Observed.clearProfiles();
+            States.changedAll();
+        });
+    }
+
+    /** Says that filters needing profile details are saved but inactive while that setting is off. */
+    private static void profileDetailsNotice(Page page, String what) {
+        if (Settings.sources().profileDetails) return;
+        page.note(what + " filters are saved but inactive while Use profile details is off in Filter behavior.")
+                .setTextColor(page.ui.alert);
+    }
+
+    /** Named filter sets; each X account remembers the one it uses. */
+    static void showProfiles(Context context, Runnable onClose) {
+        new ProfilesPage(context, onClose);
+    }
+
+    private static final class ProfilesPage {
+        final Page page;
+
+        ProfilesPage(Context context, Runnable onClose) {
+            page = new Page(context, "Filter profiles");
+            if (onClose != null) page.onClose(onClose);
+            render();
+            page.show();
+        }
+
+        void render() {
+            page.clear();
+            long viewer = Observed.viewer();
+            String handle = viewer != 0 ? Users.handleFor(viewer) : null;
+            page.note("Save different filters for different uses. " + (handle != null
+                    ? "The profile you select is used for @" + handle + "; each X account remembers its own. "
+                    : "Each X account remembers the profile selected while it is signed in. ")
+                    + "Badge settings and cached accounts are shared.");
+            page.link(Icons.PLUS, "New profile", null, v -> ask("New profile", null, "", Filters::create));
+            page.section("Profiles");
+            String active = Filters.active().id;
+            for (Filters.Profile p : Filters.profiles()) {
+                boolean selected = p.id.equals(active);
+                LinearLayout widgets = new LinearLayout(page.context);
+                widgets.setGravity(Gravity.CENTER_VERTICAL);
+                ImageView check = page.icon(Icons.CHECK, Ui.ACCENT);
+                check.setVisibility(selected ? View.VISIBLE : View.INVISIBLE);
+                widgets.addView(check);
+                widgets.addView(page.iconButton(Icons.MORE, page.ui.secondary, "More options for " + p.name, v -> options(p)));
+                LinearLayout row = page.row(null, p.name, describe(p), widgets, v -> {
+                    Filters.select(p.id);
+                    render();
+                });
+                row.setSelected(selected);
+            }
+        }
+
+        private String describe(Filters.Profile p) {
+            StringBuilder s = new StringBuilder(summary(p.rules));
+            s.append(p.rules.highlight ? " \u00B7 Highlight" : " \u00B7 Hide");
+            List<String> handles = new ArrayList<>();
+            for (long id : Filters.accountsUsing(p.id)) {
+                String h = Users.handleFor(id);
+                if (h != null) handles.add("@" + h);
+            }
+            if (!handles.isEmpty()) s.append("\nUsed by ").append(String.join(", ", handles));
+            return s.toString();
+        }
+
+        private void options(Filters.Profile p) {
+            List<String> labels = new ArrayList<>(), values = new ArrayList<>();
+            labels.add("Rename");
+            values.add("rename");
+            if (!p.isDefault()) {
+                labels.add("Delete");
+                values.add("delete");
+            }
+            page.pick(p.name, labels.toArray(new String[0]), values.toArray(new String[0]), "", choice -> {
+                if (choice.equals("rename")) {
+                    ask("Rename profile", null, p.name, name -> Filters.rename(p.id, name));
+                } else {
+                    confirmDelete(p);
+                }
+            });
+        }
+
+        private void confirmDelete(Filters.Profile p) {
+            int n = p.rules.size();
+            String message = (n == 0 ? "It has no filters." : "Its " + (n == 1 ? "filter" : NUMBERS.format(n) + " filters")
+                    + " will be deleted.") + " Accounts that use it switch to Default.";
+            page.confirm("Delete " + p.name + "?", message, "Delete", () -> {
+                Filters.delete(p.id);
+                render();
+            });
+        }
+
+        /** Asks for a name; shows why a name was refused and asks again. */
+        private void ask(String title, String error, String initial, Page.Typed save) {
+            page.ask(title, error != null ? error : "Up to " + Filters.MAX_NAME + " characters.", initial,
+                    InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES, name -> {
+                        try {
+                            save.on(name);
+                            render();
+                        } catch (IllegalArgumentException e) {
+                            ask(title, e.getMessage(), name, save);
+                        }
+                    });
+        }
+    }
+
     /** Opens the editor for one kind; for countries and regions, [region] starts expanded. */
     private static void showEditor(Context context, Kind kind, String region, Runnable onClose) {
         Page page;
@@ -132,7 +267,7 @@ final class FilterScreens {
     }
 
     private static String mode() {
-        return Settings.highlightMode() ? "highlighted" : "hidden";
+        return Filters.rules().highlight ? "highlighted" : "hidden";
     }
 
     static int count(FilterRules r, Kind kind) {
@@ -344,7 +479,7 @@ final class FilterScreens {
     private static void entryRow(Page page, Entry e, Undo undo, Runnable changed, View.OnClickListener open) {
         View icon = e.flag != null ? page.emoji(e.flag) : page.icon(e.kind.glyph, page.ui.secondary);
         View remove = page.iconButton(Icons.CLOSE, page.ui.secondary, "Remove " + e.title, v -> {
-            FilterRules before = Filters.rules();
+            Filters.Profile before = Filters.active();
             Filters.edit(e.remove);
             undo.offer(e.title, before, changed);
             changed.run();
@@ -358,7 +493,7 @@ final class FilterScreens {
         private final TextView message;
         private final Runnable hide = this::dismiss;
         private final int timeout;
-        private FilterRules before;
+        private Filters.Profile before;
         private Runnable after;
 
         Undo(Page page) {
@@ -379,7 +514,7 @@ final class FilterScreens {
             undo.setPadding(ui.dp(12), 0, ui.dp(12), 0);
             undo.setBackground(ui.rowBackground());
             undo.setOnClickListener(v -> {
-                FilterRules previous = before;
+                Filters.Profile previous = before;
                 Runnable then = after;
                 dismiss();
                 if (previous == null) return;
@@ -396,7 +531,7 @@ final class FilterScreens {
                     : UNDO_MILLIS;
         }
 
-        void offer(String what, FilterRules before, Runnable after) {
+        void offer(String what, Filters.Profile before, Runnable after) {
             this.before = before;
             this.after = after;
             message.setText("Removed " + what);
@@ -497,6 +632,7 @@ final class FilterScreens {
             page = new Page(context, kind.title);
             Ui ui = page.ui;
             page.note(help(kind));
+            if (kind == Kind.BIOS || kind == Kind.LINKS) profileDetailsNotice(page, kind.title);
             LinearLayout input = new LinearLayout(context);
             input.setGravity(Gravity.CENTER_VERTICAL);
             input.setPadding(ui.dp(16), ui.dp(4), ui.dp(16), ui.dp(4));
@@ -804,6 +940,7 @@ final class FilterScreens {
         Page page = new Page(context, Kind.ACTIVITY.title);
         FilterRules rules = Filters.rules();
         page.section("Activity");
+        profileDetailsNotice(page, "Following and total posts");
         threshold(page, "Following", "Accounts that follow at least this many accounts. This counts who they follow, "
                         + "not their followers.", rules.minFollowing, FOLLOWING_PRESETS, Long.MAX_VALUE, SUGGESTED_FOLLOWING,
                 v -> Filters.edit(b -> b.setMinFollowing(v)));

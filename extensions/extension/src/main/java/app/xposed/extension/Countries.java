@@ -2,6 +2,7 @@ package app.xposed.extension;
 
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -41,6 +42,8 @@ final class Countries {
     private static final Pattern SPACES = Pattern.compile("\\s+");
     private static final int MEMO_LIMIT = 2000;
     private static final Map<String, String> CANONICAL = new ConcurrentHashMap<>();
+    /** Connection source to the country key in it, "" for none. */
+    private static final Map<String, String> SOURCE_COUNTRY = new ConcurrentHashMap<>();
 
     /** Canonical key to flag, for every spelling in X-Posed's table. */
     private static final Map<String, String> FLAGS = new HashMap<>();
@@ -111,13 +114,38 @@ final class Countries {
     static String canonicalKey(String location) {
         String cached = CANONICAL.get(location);
         if (cached != null) return cached;
-        String k = canonical(key(location));
+        String k = resolve(location);
+        if (CANONICAL.size() < MEMO_LIMIT) CANONICAL.put(location, k);
+        return k;
+    }
+
+    private static String resolve(String name) {
+        String k = canonical(key(name));
         if (!FLAGS.containsKey(k) && !REGIONS.containsKey(k)) {
             String fromLocale = localized().get(k);
             if (fromLocale != null) k = fromLocale;
         }
-        if (CANONICAL.size() < MEMO_LIMIT) CANONICAL.put(location, k);
         return k;
+    }
+
+    /**
+     * The country key in a connection source such as "Switzerland App Store", as X-Posed's
+     * getDeviceCountry: the longest leading run of words that names a country. Null for
+     * sources without one, such as "Web".
+     */
+    static String sourceCountry(String source) {
+        if (source == null) return null;
+        String cached = SOURCE_COUNTRY.get(source);
+        if (cached == null) {
+            cached = "";
+            String[] words = SPACES.split(source.trim());
+            for (int n = words.length; n > 0 && cached.isEmpty(); n--) {
+                String k = resolve(String.join(" ", Arrays.asList(words).subList(0, n)));
+                if (FLAGS.containsKey(k)) cached = k;
+            }
+            if (SOURCE_COUNTRY.size() < MEMO_LIMIT) SOURCE_COUNTRY.put(source, cached);
+        }
+        return cached.isEmpty() ? null : cached;
     }
 
     /** True when the name is one of the English country or region spellings X-Posed knows. */
