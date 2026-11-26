@@ -89,15 +89,41 @@ public final class Hooks {
     }
 
     /**
-     * Called at the start of X's post and quote composables, whose modifier is null when they
-     * use the default. Returns {@link #HIDE}, or the modifier to use.
+     * Called at the start of X's post and quote composables with the author, the AvailablePost
+     * (null for quotes) and the modifier, which is null when they use the default. Returns
+     * {@link #HIDE}, or the modifier to use.
      */
-    public static Object onPost(String screenName, long userId, Object modifier) {
+    public static Object onPost(Object user, Object post, Object modifier) {
         try {
-            return PostFilters.onPost(screenName, userId, modifier);
+            return PostFilters.onPost(user, post, modifier);
         } catch (Throwable t) {
             Log.e(TAG, "Failed to filter post", t);
             return modifier;
+        }
+    }
+
+    /** Set after the first failure to read X's models, so a changed release can't spam the log. */
+    private static volatile boolean modelsBroken;
+
+    /** Called when X creates a CanonicalPost, on the thread that loads it. */
+    public static void onCanonicalPost(Object post) {
+        if (modelsBroken) return;
+        try {
+            Observed.canonicalPost(post);
+        } catch (Throwable t) {
+            modelsBroken = true;
+            Log.e(TAG, "Post languages are unavailable", t);
+        }
+    }
+
+    /** Called when X creates a ProfileUser, on the thread that loads it. */
+    public static void onProfileUser(Object user) {
+        if (modelsBroken) return;
+        try {
+            Observed.profileUser(user);
+        } catch (Throwable t) {
+            modelsBroken = true;
+            Log.e(TAG, "Profile details are unavailable", t);
         }
     }
 

@@ -14,7 +14,6 @@ final class Settings {
     static final String BADGE_VPN = "badge_vpn";
     static final String BADGE_INFO = "badge_info";
     static final String FILTER_MODE = "filter_mode";
-    static final String FILTER_LOCATIONS = "filter_locations";
     static final String ZERO_ENGAGEMENT = "zero_engagement";
     static final String COMMUNITY_CACHE = "community_cache";
     static final String HIGHLIGHT_CONTRAST = "highlight_contrast";

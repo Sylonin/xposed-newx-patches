@@ -22,15 +22,24 @@ final class PostFilters {
     }
 
     /**
-     * Called when a post or quote composes, with its author and its modifier (null when it uses
-     * the default). Returns the modifier for it, or {@link Hooks#HIDE} when it should not be shown.
+     * Called when a post or quote composes, with its author, its AvailablePost (null for a
+     * quote) and its modifier (null when it uses the default). Returns the modifier for it,
+     * or {@link Hooks#HIDE} when it should not be shown.
      */
-    static Object onPost(String screenName, long userId, Object modifier) {
-        String handle = NameBadges.normalizeHandle(screenName);
+    static Object onPost(Object user, Object post, Object modifier) {
+        String handle = FilterText.handle(ModelBridge.screenName(user));
         if (handle == null) return modifier;
+        long userId = ModelBridge.userId(user);
         Users.put(userId, handle);
         States.observe(handle);
-        switch (Filters.actionFor(Lookup.get(handle))) {
+        if (post != null) Observed.viewer(ModelBridge.viewerId(post));
+        int reasons = Verdicts.forUser(user, handle, userId);
+        if (post == null) {
+            reasons &= ~FilterMatcher.QUOTE_EXEMPT;
+        } else if (!Verdicts.isViewer(userId)) {
+            reasons |= FilterMatcher.language(Filters.rules(), Observed.language(ModelBridge.postId(post)));
+        }
+        switch (Filters.action(reasons)) {
             case HIDE:
                 return Hooks.HIDE;
             case HIGHLIGHT:

@@ -44,7 +44,7 @@ private val Method.isStatic get() = AccessFlags.STATIC.isSet(accessFlags)
 private val Field.isStatic get() = AccessFlags.STATIC.isSet(accessFlags)
 
 /** The User interface of X's models. */
-private class UserModel(val type: String, val screenName: MethodReference, val getId: MethodReference, val idValue: FieldReference)
+internal class UserModel(val type: String, val screenName: MethodReference, val getId: MethodReference, val idValue: FieldReference)
 
 /** Renamed Jetpack Compose members the bridge calls. */
 private class ComposeModel(
@@ -176,6 +176,7 @@ val accountBadgesPatch = bytecodePatch(
         val postFields = toStringFields(post.originalMethod)
         val author = postFields.field("AvailablePost", "author", user.type)
         val appealPivot = postFields.field("AvailablePost", "authorAppealPivot")
+        writeModelBridge(user, post.originalClassDef, postFields)
         Fingerprint(
             isStatic = true,
             returnType = "V",
@@ -187,8 +188,7 @@ val accountBadgesPatch = bytecodePatch(
         ).matchSingle().let { match ->
             match.method.hookFilteredComposable(
                 match.originalMethod,
-                user,
-                "move-object/16 v0, ${match.method.parameterRegister(0)}\niget-object v0, v0, ${author.descriptor}",
+                "move-object/16 v1, ${match.method.parameterRegister(0)}\niget-object v0, v1, ${author.descriptor}",
                 match.method.types.indexOf(MODIFIER),
             )
         }
@@ -221,8 +221,7 @@ val accountBadgesPatch = bytecodePatch(
         headerLayouts.forEach { match ->
             match.method.hookFilteredComposable(
                 match.originalMethod,
-                user,
-                "move-object/16 v0, ${match.method.parameterRegister(0)}\niget-object v0, v0, ${author.descriptor}",
+                "move-object/16 v1, ${match.method.parameterRegister(0)}\niget-object v0, v1, ${author.descriptor}",
                 match.method.types.indexOf(MODIFIER),
             )
         }
@@ -245,10 +244,10 @@ val accountBadgesPatch = bytecodePatch(
             }
         }.single("quote card dispatcher").let { match ->
             val types = match.method.types
+            // A quote has no AvailablePost of its own; its language is left to the enclosing post.
             match.method.hookFilteredComposable(
                 match.originalMethod,
-                user,
-                "move-object/16 v0, ${match.method.parameterRegister(types.indexOf(user.type))}",
+                "move-object/16 v0, ${match.method.parameterRegister(types.indexOf(user.type))}\nconst/4 v1, 0x0",
                 types.indexOf(MODIFIER),
             )
         }
@@ -256,36 +255,27 @@ val accountBadgesPatch = bytecodePatch(
 }
 
 /**
- * Asks the extension about a post or quote whose author [loadAuthor] puts in v0. It returns
- * Hooks.HIDE to show nothing, or the modifier to use, which carries the highlight if it isn't
- * the original one.
+ * Asks the extension about a post or quote. [load] puts the author in v0 and the
+ * AvailablePost, or null for a quote, in v1. Hooks.onPost returns Hooks.HIDE to show nothing,
+ * or the modifier to use, which carries the highlight if it isn't the original one.
  */
-private fun MutableMethod.hookFilteredComposable(original: Method, user: UserModel, loadAuthor: String, modifierIndex: Int) {
+private fun MutableMethod.hookFilteredComposable(original: Method, load: String, modifierIndex: Int) {
     replaceComposableArgument(
         original,
         modifierIndex,
         """
-        $loadAuthor
+        $load
         if-eqz v0, :xposed_original
-        invoke-interface { v0 }, ${user.screenName.descriptor}
-        move-result-object v1
-        invoke-interface { v0 }, ${user.getId.descriptor}
-        move-result-object v5
-        const-wide/16 v2, 0x0
-        if-eqz v5, :xposed_call
-        iget-wide v2, v5, ${user.idValue.descriptor}
-        :xposed_call
-        move-object/16 v4, ${parameterRegister(modifierIndex)}
-        invoke-static/range { v1 .. v4 }, $HOOKS_CLASS->onPost(Ljava/lang/String;JLjava/lang/Object;)Ljava/lang/Object;
+        move-object/16 v2, ${parameterRegister(modifierIndex)}
+        invoke-static { v0, v1, v2 }, $HOOKS_CLASS->onPost(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
         move-result-object v0
         sget-object v1, $HOOKS_CLASS->HIDE:Ljava/lang/Object;
         if-ne v0, v1, :xposed_show
         return-void
         :xposed_show
-        if-eq v0, v4, :xposed_original
+        if-eq v0, v2, :xposed_original
         check-cast v0, $MODIFIER
         """,
-        locals = 6,
     )
 }
 
@@ -313,11 +303,11 @@ private fun MutableMethod.replaceComposableArgument(original: Method, index: Int
 private fun BytecodePatchContext.mutableMethodOf(method: Method): MutableMethod =
     mutableClassDefBy(method.definingClass).methods.first { it.name == method.name && it.types == method.types && it.returnType == method.returnType }
 
-private fun BytecodePatchContext.instanceField(classType: String, what: String, predicate: (Field) -> Boolean): Field =
+internal fun BytecodePatchContext.instanceField(classType: String, what: String, predicate: (Field) -> Boolean): Field =
     classDefBy(classType).fields.filter { !it.isStatic && predicate(it) }.single(what)
 
 /** Code we add runs in other classes, so everything it touches must be public. */
-private fun BytecodePatchContext.requirePublic(vararg members: Any) {
+internal fun BytecodePatchContext.requirePublic(vararg members: Any) {
     fun requireClass(type: String) {
         if (!type.startsWith("L")) return
         val classDef = classDefByOrNull(type) ?: return

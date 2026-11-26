@@ -70,6 +70,37 @@ internal object AvailablePostToStringFingerprint : Fingerprint(
     strings = listOf("AvailablePost(entryId="),
 )
 
+internal object CanonicalPostToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("CanonicalPost(id="),
+)
+
+internal object ProfileUserToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("ProfileUser(id="),
+)
+
+internal object RelationshipCountsToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("RelationshipCounts(following="),
+)
+
+/** A user's highlighted label, such as the badge of the organization it is affiliated with. */
+internal object UserLabelToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("UserLabel(type="),
+)
+
+internal object PostEntityListToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("PostEntityList(mentions="),
+)
+
+internal object UrlEntityToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("UrlEntity(displayUrl="),
+)
+
 /** The client event reporter every LogEvent goes through. */
 internal object EventReporterFingerprint : Fingerprint(
     returnType = "V",

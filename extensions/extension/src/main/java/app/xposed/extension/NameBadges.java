@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import kotlin.jvm.functions.Function0;
@@ -60,7 +59,7 @@ final class NameBadges {
     /** Called when a name row composes; returns its badge list with ours appended when known. */
     static Object onNameRow(String handleText, Object badges) {
         if (broken || !(badges instanceof List)) return badges;
-        String handle = normalizeHandle(handleText);
+        String handle = FilterText.handle(handleText);
         if (handle == null) return badges;
         States.observe(handle);
         AccountInfo info = Lookup.get(handle);
@@ -122,21 +121,6 @@ final class NameBadges {
         // Not caught: a failure inside a composable leaves the composition unusable anyway.
         ComposeBridge.image(painter, description, modifier, composer);
         return true;
-    }
-
-    /** "@Example" or "Example" from X's username text; null when it isn't a handle. */
-    static String normalizeHandle(String username) {
-        if (username == null) return null;
-        int start = 0, end = username.length();
-        while (start < end && username.charAt(start) <= ' ') start++;
-        while (end > start && username.charAt(end - 1) <= ' ') end--;
-        if (start < end && username.charAt(start) == '@') start++;
-        if (end - start < 1 || end - start > 15) return null;
-        for (int i = start; i < end; i++) {
-            char c = username.charAt(i);
-            if (!(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_')) return null;
-        }
-        return username.substring(start, end).toLowerCase(Locale.ROOT);
     }
 
     private static String describe(AccountInfo info) {
