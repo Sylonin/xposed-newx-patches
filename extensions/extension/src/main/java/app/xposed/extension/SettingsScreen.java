@@ -63,6 +63,8 @@ final class SettingsScreen {
         page.link(null, "Saved filters", FilterScreens.summary(Filters.rules()), v -> FilterScreens.showSaved(context, this::build));
         page.link(null, "Add a filter", "Countries, accounts, names, bios, links, labels, languages and more.",
                 v -> FilterScreens.showAdd(context, this::build));
+        page.link(null, "Always Show", FilterScreens.alwaysShowSummary(Filters.rules()),
+                v -> FilterScreens.showAlwaysShow(context, this::build));
         highlightPreview = mockPost();
         page.add(highlightPreview);
         choice("Highlight contrast", "How strongly highlighted posts stand out. Standard matches X-Posed.",

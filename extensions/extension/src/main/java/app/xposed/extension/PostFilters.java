@@ -33,12 +33,8 @@ final class PostFilters {
         Users.put(userId, handle);
         States.observe(handle);
         if (post != null) Observed.viewer(ModelBridge.viewerId(post));
-        int reasons = Verdicts.forUser(user, handle, userId);
-        if (post == null) {
-            reasons &= ~FilterMatcher.QUOTE_EXEMPT;
-        } else if (!Verdicts.isViewer(userId)) {
-            reasons |= FilterMatcher.language(Filters.rules(), Observed.language(ModelBridge.postId(post)));
-        }
+        String language = post != null ? Observed.language(ModelBridge.postId(post)) : null;
+        int reasons = Verdicts.forPost(user, handle, userId, language, post == null);
         switch (Filters.action(reasons)) {
             case HIDE:
                 return Hooks.HIDE;

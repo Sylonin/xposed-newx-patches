@@ -50,6 +50,11 @@ public final class ModelBridge {
         throw notPatched();
     }
 
+    /** True when X reports that the signed-in account follows this one; false when not, or when X didn't say. */
+    public static boolean followedByMe(Object user) {
+        throw notPatched();
+    }
+
     /** The description of the account's highlighted label, usually its affiliated organization, or null. */
     public static String affiliation(Object user) {
         throw notPatched();

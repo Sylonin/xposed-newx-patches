@@ -99,12 +99,15 @@ These rules keep the patch safe across X releases. Follow them for every new hoo
 
 - User interface accessors are found through the getters `MinimalUser` (`g5`) implements
   them with: `name`, `profileDescription`, `verifiedType`, `userLabel`, `entities`,
-  `relationshipCounts` and `parodyCommentaryFanLabel`.
+  `relationshipCounts`, `parodyCommentaryFanLabel` and `friendship`.
 - Enum constants (`Government`, `Parody`, `Commentary`, `Fan`) are read from the static
   fields each enum's `<clinit>` assigns after building the constant with that name, not from
   `name()`, which R8 may strip.
 - `RelationshipCounts.following`, `UserLabel.description` (the affiliation),
   `PostEntityList.urls` and `UrlEntity.expandedUrl` (links in the bio).
+- `Friendship.isFollowedByMe` (`i3`): whether the signed-in account follows the user. X's
+  timeline query fetches it (`relationship_perspectives.following`), and it is false when X
+  doesn't say, so only a reported follow exempts an account from the filters.
 - `AvailablePost.postId` and `currentUserIdentifier`, the signed-in account. Posts by the
   signed-in account are never filtered.
 - Timeline users are `MinimalUser`s. X's timeline query doesn't fetch the profile location,

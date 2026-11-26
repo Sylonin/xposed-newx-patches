@@ -22,6 +22,7 @@ import android.widget.TextView;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -54,7 +55,8 @@ final class FilterScreens {
         AFFILIATIONS(Icons.AFFILIATION, "Organization affiliation", "Organization names or handles."),
         LANGUAGES(Icons.LANGUAGES, "Post languages", "The language X detects in a post."),
         ACTIVITY(Icons.CHART, "Activity and names", "Following, total posts and digits in account names."),
-        WARNINGS(Icons.SHIELD, "Location warnings", "Accounts whose location X says may not be accurate.");
+        WARNINGS(Icons.SHIELD, "Location warnings", "Accounts whose location X says may not be accurate."),
+        ALWAYS_SHOW(Icons.AT_SIGN, "Always Show", "Accounts no filter hides or highlights.");
 
         final Glyphs.Glyph glyph;
         final String title, hint;
@@ -65,6 +67,9 @@ final class FilterScreens {
             this.hint = hint;
         }
     }
+
+    /** The kinds that are filters. Always Show is the list of exceptions to them. */
+    private static final Set<Kind> FILTERS = EnumSet.complementOf(EnumSet.of(Kind.ALWAYS_SHOW));
 
     private interface Threshold {
         void set(long value);
@@ -79,12 +84,24 @@ final class FilterScreens {
         return n == 0 ? "None" : NUMBERS.format(n) + (n == 1 ? " filter" : " filters");
     }
 
+    /** "2 accounts and accounts you follow", for the settings row. */
+    static String alwaysShowSummary(FilterRules rules) {
+        int n = rules.alwaysShow.size();
+        String accounts = n == 0 ? null : NUMBERS.format(n) + (n == 1 ? " account" : " accounts");
+        if (!rules.alwaysShowFollowing) return accounts != null ? accounts : "None";
+        return accounts != null ? accounts + " and accounts you follow" : "Accounts you follow";
+    }
+
     static void showSaved(Context context, Runnable onClose) {
         new SavedPage(context, onClose);
     }
 
     static void showAdd(Context context, Runnable onClose) {
         new AddPage(context, onClose);
+    }
+
+    static void showAlwaysShow(Context context, Runnable onClose) {
+        showEditor(context, Kind.ALWAYS_SHOW, null, onClose);
     }
 
     /** Opens the editor for one kind; for countries and regions, [region] starts expanded. */
@@ -139,8 +156,11 @@ final class FilterScreens {
             case ACTIVITY:
                 return (r.minFollowing > 0 ? 1 : 0) + (r.minPosts > 0 ? 1 : 0)
                         + (r.minHandleDigits > 0 ? 1 : 0) + (r.minNameDigits > 0 ? 1 : 0);
-            default:
+            case WARNINGS:
                 return r.warnedAccounts ? 1 : 0;
+            case ALWAYS_SHOW:
+            default:
+                return r.alwaysShow.size();
         }
     }
 
@@ -238,9 +258,14 @@ final class FilterScreens {
                             b -> b.setMinNameDigits(0), null));
                 }
                 break;
-            default:
+            case WARNINGS:
                 if (r.warnedAccounts) {
                     out.add(new Entry(kind, null, "Accounts with a location warning", null, b -> b.warnedAccounts = false, null));
+                }
+                break;
+            case ALWAYS_SHOW:
+                for (String handle : r.alwaysShow) {
+                    out.add(new Entry(kind, null, "@" + handle, null, b -> b.removeAlwaysShow(handle), null));
                 }
                 break;
         }
@@ -418,7 +443,7 @@ final class FilterScreens {
             page.link(Icons.PLUS, "Add a filter", null, v -> showAdd(page.context, this::render));
             String q = FilterText.term(query);
             int shown = 0;
-            for (Kind kind : Kind.values()) {
+            for (Kind kind : FILTERS) {
                 List<Entry> entries = new ArrayList<>();
                 for (Entry e : entries(rules, kind)) if (q.isEmpty() || e.matches(q)) entries.add(e);
                 if (entries.isEmpty()) continue;
@@ -447,7 +472,7 @@ final class FilterScreens {
             page.clear();
             page.note("Choose what to match. Matching posts are " + mode() + ".");
             FilterRules rules = Filters.rules();
-            for (Kind kind : Kind.values()) {
+            for (Kind kind : FILTERS) {
                 int n = count(rules, kind);
                 page.link(kind.glyph, kind.title, n > 0 ? kind.hint + " " + NUMBERS.format(n) + " saved." : kind.hint,
                         v -> showEditor(page.context, kind, null, this::render));
@@ -477,7 +502,7 @@ final class FilterScreens {
             input.setPadding(ui.dp(16), ui.dp(4), ui.dp(16), ui.dp(4));
             field = page.field(fieldHint(kind), inputType(kind), text -> submit());
             input.addView(field, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-            add = ui.pill(kind == Kind.ACCOUNTS ? "Add account" : "Add", true, v -> submit());
+            add = ui.pill(kind == Kind.ACCOUNTS || kind == Kind.ALWAYS_SHOW ? "Add account" : "Add", true, v -> submit());
             LinearLayout.LayoutParams addLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ui.dp(48));
             addLp.setMarginStart(ui.dp(8));
             input.addView(add, addLp);
@@ -488,7 +513,11 @@ final class FilterScreens {
             page.add(feedback);
             field.addTextChangedListener(watcher(this::validate));
             FilterRules rules = Filters.rules();
-            if (kind == Kind.BIOS) {
+            if (kind == Kind.ALWAYS_SHOW) {
+                page.toggle("Always show accounts you follow", "Applies when X reports that you follow the account. "
+                                + "Otherwise your filters still apply.",
+                        rules.alwaysShowFollowing, on -> Filters.edit(b -> b.alwaysShowFollowing = on));
+            } else if (kind == Kind.BIOS) {
                 page.toggle("Also match profile location", "Applies to every bio filter. Uses the location text the account "
                                 + "wrote, not the country X reports. " + PROFILE_ONLY,
                         rules.bioMatchesLocation, on -> Filters.edit(b -> b.bioMatchesLocation = on));
@@ -505,6 +534,10 @@ final class FilterScreens {
 
         private static String help(Kind kind) {
             switch (kind) {
+                case ALWAYS_SHOW:
+                    return "No filter hides or highlights these accounts. Add an account here by its exact @handle, or "
+                            + "from its account sheet. Like X-Posed, Always Show goes by handle, so it stops applying if "
+                            + "the account changes its handle. Your follows and blocks on X don't change.";
                 case ACCOUNTS:
                     return "The easiest way is the account sheet: tap an account's badge, then Hide or Highlight. Here you can "
                             + "enter a numeric user ID, an x.com/i/user/ link, or the @handle of an account X has shown you "
@@ -524,6 +557,8 @@ final class FilterScreens {
 
         private static String fieldHint(Kind kind) {
             switch (kind) {
+                case ALWAYS_SHOW:
+                    return "@handle";
                 case ACCOUNTS:
                     return "User ID, x.com/i/user/ link or @handle";
                 case LINKS:
@@ -541,6 +576,7 @@ final class FilterScreens {
                 case LINKS:
                     return InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
                 case AFFILIATIONS:
+                case ALWAYS_SHOW:
                     return InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
                 default:
                     return InputType.TYPE_CLASS_TEXT;
@@ -578,6 +614,19 @@ final class FilterScreens {
                             }
                             pending = () -> Filters.edit(b -> b.addLink(rule));
                             addedMessage = "Added " + rule + ".";
+                        }
+                        break;
+                    }
+                    case ALWAYS_SHOW: {
+                        String handle = FilterText.handle(raw);
+                        if (handle == null) {
+                            message = "Enter a handle of up to 15 letters, digits or underscores.";
+                            color = Page.DESTRUCTIVE;
+                        } else if (rules.alwaysShow.contains(handle)) {
+                            message = "@" + handle + " is already in Always Show.";
+                        } else {
+                            pending = () -> Filters.edit(b -> b.addAlwaysShow(handle));
+                            addedMessage = "Always showing @" + handle + ".";
                         }
                         break;
                     }

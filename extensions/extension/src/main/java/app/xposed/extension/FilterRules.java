@@ -49,6 +49,10 @@ final class FilterRules {
     /** Filter accounts whose location X marks as possibly inaccurate. */
     final boolean warnedAccounts;
     final boolean bioMatchesLocation, linksMatchLocation;
+    /** Always Show: lowercase handles no filter applies to. Not counted as filters. */
+    final Set<String> alwaysShow;
+    /** No filter applies to accounts X reports the signed-in account follows. */
+    final boolean alwaysShowFollowing;
 
     final Set<String> locationKeys, coveredCountries, domains, urls;
     final String[] nameTerms, bioTerms, affiliationTerms;
@@ -85,15 +89,18 @@ final class FilterRules {
         warnedAccounts = b.warnedAccounts;
         bioMatchesLocation = b.bioMatchesLocation;
         linksMatchLocation = b.linksMatchLocation;
+        alwaysShow = Collections.unmodifiableSet(new TreeSet<>(b.alwaysShow));
+        alwaysShowFollowing = b.alwaysShowFollowing;
     }
 
-    /** Number of separate rules, as the saved-filters list shows them. */
+    /** Number of separate filters, as the saved-filters list shows them; Always Show is not counted. */
     int size() {
         return locations.size() + accounts.size() + names.size() + bios.size() + affiliations.size() + links.size()
                 + labels.size() + languages.size() + (minFollowing > 0 ? 1 : 0) + (minPosts > 0 ? 1 : 0)
                 + (minHandleDigits > 0 ? 1 : 0) + (minNameDigits > 0 ? 1 : 0) + (warnedAccounts ? 1 : 0);
     }
 
+    /** True when no filter is saved; Always Show alone filters nothing. */
     boolean isEmpty() {
         return size() == 0;
     }
@@ -116,6 +123,8 @@ final class FilterRules {
         b.warnedAccounts = warnedAccounts;
         b.bioMatchesLocation = bioMatchesLocation;
         b.linksMatchLocation = linksMatchLocation;
+        b.alwaysShow.addAll(alwaysShow);
+        b.alwaysShowFollowing = alwaysShowFollowing;
         return b;
     }
 
@@ -145,6 +154,8 @@ final class FilterRules {
             o.put("minHandleDigits", minHandleDigits);
             o.put("minNameDigits", minNameDigits);
             o.put("warned", warnedAccounts);
+            o.put("alwaysShow", new JSONArray(alwaysShow));
+            o.put("alwaysShowFollowing", alwaysShowFollowing);
             return o.toString();
         } catch (JSONException e) {
             throw new IllegalStateException(e);
@@ -195,6 +206,8 @@ final class FilterRules {
         b.warnedAccounts = o.optBoolean("warned", false);
         b.bioMatchesLocation = o.optBoolean("bioLocation", false);
         b.linksMatchLocation = o.optBoolean("linksLocation", false);
+        for (String s : strings(o.optJSONArray("alwaysShow"))) b.addAlwaysShow(s);
+        b.alwaysShowFollowing = o.optBoolean("alwaysShowFollowing", false);
         return b.build();
     }
 
@@ -218,10 +231,10 @@ final class FilterRules {
         private final Map<String, String> names = new LinkedHashMap<>(), bios = new LinkedHashMap<>(),
                 affiliations = new LinkedHashMap<>();
         private final Set<String> links = new LinkedHashSet<>();
-        private final Set<String> labels = new TreeSet<>(), languages = new TreeSet<>();
+        private final Set<String> labels = new TreeSet<>(), languages = new TreeSet<>(), alwaysShow = new TreeSet<>();
         private long minFollowing, minPosts;
         private int minHandleDigits, minNameDigits;
-        boolean warnedAccounts, bioMatchesLocation, linksMatchLocation;
+        boolean warnedAccounts, bioMatchesLocation, linksMatchLocation, alwaysShowFollowing;
 
         FilterRules build() {
             return new FilterRules(this);
@@ -357,6 +370,17 @@ final class FilterRules {
 
         void setMinNameDigits(int value) {
             minNameDigits = Math.max(0, Math.min(MAX_NAME_DIGITS, value));
+        }
+
+        /** Adds a handle to Always Show; false when it isn't a handle or was already there. */
+        boolean addAlwaysShow(String handle) {
+            String h = FilterText.handle(handle);
+            return h != null && alwaysShow.size() < MAX_ITEMS && alwaysShow.add(h);
+        }
+
+        void removeAlwaysShow(String handle) {
+            String h = FilterText.handle(handle);
+            if (h != null) alwaysShow.remove(h);
         }
     }
 }

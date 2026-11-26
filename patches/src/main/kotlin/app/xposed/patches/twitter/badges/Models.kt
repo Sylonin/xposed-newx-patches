@@ -49,6 +49,7 @@ internal fun BytecodePatchContext.writeModelBridge(user: UserModel, availablePos
     val entities = accessor("entities")
     val counts = accessor("relationshipCounts")
     val pcf = accessor("parodyCommentaryFanLabel")
+    val friendship = accessor("friendship")
 
     val verification = enumConstants(verifiedType.returnType, "Government")
     val labels = enumConstants(pcf.returnType, "Parody", "Commentary", "Fan")
@@ -64,6 +65,10 @@ internal fun BytecodePatchContext.writeModelBridge(user: UserModel, availablePos
     requireDefinedIn(urls, entities.returnType)
     val urlEntity = UrlEntityToStringFingerprint.matchSingle()
     val expandedUrl = toStringFields(urlEntity.originalMethod).field("UrlEntity", "expandedUrl", STRING)
+    // "isFollowedByMe": the signed-in account follows this one (relationship_perspectives.following).
+    val followedByMe = toStringFields(FriendshipToStringFingerprint.matchSingle().originalMethod)
+        .field("Friendship", "isFollowedByMe", "Z")
+    requireDefinedIn(followedByMe, friendship.returnType)
 
     val profile = ProfileUserToStringFingerprint.matchSingle()
     val profileClass = profile.originalClassDef.type
@@ -84,8 +89,8 @@ internal fun BytecodePatchContext.writeModelBridge(user: UserModel, availablePos
     val language = canonicalFields.field("CanonicalPost", "language", STRING)
 
     requirePublic(
-        name, bio, verifiedType, userLabel, entities, counts, pcf, following, labelDescription, urls, expandedUrl,
-        location, website, tweetCounts, postId, viewer, postIdValue, canonicalId, language,
+        name, bio, verifiedType, userLabel, entities, counts, pcf, friendship, following, labelDescription, urls,
+        expandedUrl, followedByMe, location, website, tweetCounts, postId, viewer, postIdValue, canonicalId, language,
         *verification.values.toTypedArray(), *labels.values.toTypedArray(),
     )
 
@@ -157,6 +162,19 @@ internal fun BytecodePatchContext.writeModelBridge(user: UserModel, availablePos
         :unknown
         const-wide/16 v0, -0x1
         return-wide v0
+        """,
+    )
+    stub(
+        "followedByMe", 1,
+        """
+        ${userCall(friendship)}
+        move-result-object v0
+        if-eqz v0, :unknown
+        iget-boolean v0, v0, ${followedByMe.descriptor}
+        return v0
+        :unknown
+        const/4 v0, 0x0
+        return v0
         """,
     )
     stub(

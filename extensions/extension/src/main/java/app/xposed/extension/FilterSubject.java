@@ -23,10 +23,12 @@ final class FilterSubject {
     final String affiliation;
     /** Accounts followed and posts written, or -1. */
     final long following, posts;
+    /** True when X reports that the signed-in account follows this one; false also when X didn't say. */
+    final boolean followedByMe;
 
     FilterSubject(String handle, long userId, String displayName, String bio, String profileLocation,
                   List<String> websiteUrls, List<String> bioUrls, String label, boolean government,
-                  String affiliation, long following, long posts) {
+                  String affiliation, long following, long posts, boolean followedByMe) {
         this.handle = handle;
         this.userId = userId;
         this.displayName = displayName;
@@ -39,10 +41,11 @@ final class FilterSubject {
         this.affiliation = affiliation;
         this.following = following;
         this.posts = posts;
+        this.followedByMe = followedByMe;
     }
 
     /** An account known only by its handle and id, as in client events for unseen posts. */
     static FilterSubject minimal(String handle, long userId) {
-        return new FilterSubject(handle, userId, null, null, null, null, null, null, false, null, -1, -1);
+        return new FilterSubject(handle, userId, null, null, null, null, null, null, false, null, -1, -1, false);
     }
 }

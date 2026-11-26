@@ -85,6 +85,12 @@ internal object RelationshipCountsToStringFingerprint : Fingerprint(
     strings = listOf("RelationshipCounts(following="),
 )
 
+/** The signed-in account's relationship to a user, from the timeline's relationship_perspectives. */
+internal object FriendshipToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("Friendship(isFollowedByMe="),
+)
+
 /** A user's highlighted label, such as the badge of the organization it is affiliated with. */
 internal object UserLabelToStringFingerprint : Fingerprint(
     name = "toString",

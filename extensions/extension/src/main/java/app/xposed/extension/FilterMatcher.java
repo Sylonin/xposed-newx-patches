@@ -50,17 +50,33 @@ final class FilterMatcher {
     static final int QUOTE_EXEMPT = Reason.LOCATION_WARNING.bit | Reason.LANGUAGE.bit;
 
     /**
+     * True for accounts no filter applies to, as X-Posed's isAuthorExempt: Always Show, and
+     * accounts the signed-in account follows when that option is on. Follow status counts only
+     * when X reports it; the signed-in account itself is exempted by the caller.
+     */
+    static boolean exempt(FilterRules rules, FilterSubject who) {
+        return who.handle != null && rules.alwaysShow.contains(who.handle) || rules.alwaysShowFollowing && who.followedByMe;
+    }
+
+    /**
      * The filters the author of a post or quote matches. info is what X reports about the
-     * account, or null while it loads; language is the post's language, or null.
+     * account, or null while it loads; language is the post's language, or null. Exempt
+     * authors match nothing, their post language included.
      */
     static int match(FilterRules rules, FilterSubject who, AccountInfo info, String language, boolean quote) {
-        int reasons = account(rules, who, info) | language(rules, language);
+        if (who != null && exempt(rules, who)) return 0;
+        return post(rules, account(rules, who, info), language, quote);
+    }
+
+    /** A post's filters from its author's account filters: adds the post language and drops what quotes ignore. */
+    static int post(FilterRules rules, int account, String language, boolean quote) {
+        int reasons = account | language(rules, language);
         return quote ? reasons & ~QUOTE_EXEMPT : reasons;
     }
 
     /** The account filters, location warnings included; the same for every post of the account. */
     static int account(FilterRules rules, FilterSubject who, AccountInfo info) {
-        if (rules.isEmpty() || who == null) return 0;
+        if (rules.isEmpty() || who == null || exempt(rules, who)) return 0;
         int reasons = 0;
         if (who.userId != 0 && rules.accounts.containsKey(who.userId)) reasons |= Reason.ACCOUNT.bit;
         reasons |= location(rules, info);

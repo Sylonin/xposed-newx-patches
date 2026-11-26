@@ -33,10 +33,10 @@ compared against X-Posed 4.4.0 (commit 7e93b04, 2026-11-08). Upstream paths are 
 - [X] Saved filters page: one searchable list of every rule with category icons, edit and
   remove, plus an "Add filter" flow.
 
-* TODO Always Show [1/3]
-- [ ] Always Show list: accounts that no filter hides or highlights. Add or remove them from
+* DONE Always Show [3/3]
+- [X] Always Show list: accounts that no filter hides or highlights. Add or remove them from
   the account sheet and from settings. Upstream adds @xaitax on new installs.
-- [ ] Option (off by default) to exempt accounts the user follows, using the follow status X
+- [X] Option (off by default) to exempt accounts the user follows, using the follow status X
   has already loaded. Quoted authors are checked on their own.
 - [X] Exempt the signed-in user's own account from every filter.
 

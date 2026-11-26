@@ -20,14 +20,17 @@ final class Verdicts {
         final FilterSubject subject;
         final FilterRules rules;
         final AccountInfo info;
+        final boolean exempt;
         final int reasons;
 
-        Verdict(Object source, Observed.Profile profile, FilterSubject subject, FilterRules rules, AccountInfo info, int reasons) {
+        Verdict(Object source, Observed.Profile profile, FilterSubject subject, FilterRules rules, AccountInfo info,
+                boolean exempt, int reasons) {
             this.source = source;
             this.profile = profile;
             this.subject = subject;
             this.rules = rules;
             this.info = info;
+            this.exempt = exempt;
             this.reasons = reasons;
         }
     }
@@ -47,8 +50,11 @@ final class Verdicts {
         return userId != 0 && userId == Observed.viewer();
     }
 
-    /** The account filters matching a user X is showing, scheduling a lookup when its location is unknown. */
-    static int forUser(Object user, String handle, long userId) {
+    /**
+     * The filters a post or quote matches, from its author as X shows it and the post's
+     * language (null for quotes). Schedules a lookup when the author's location is unknown.
+     */
+    static int forPost(Object user, String handle, long userId, String language, boolean quote) {
         FilterRules rules = Filters.rules();
         if (rules.isEmpty() || isViewer(userId)) return 0;
         AccountInfo info = Lookup.get(handle);
@@ -58,13 +64,15 @@ final class Verdicts {
             e = byHandle.get(handle);
         }
         boolean sameAccount = e != null && e.source == user && e.profile == profile;
-        if (sameAccount && e.rules == rules && e.info == info) return e.reasons;
-        FilterSubject subject = sameAccount ? e.subject : subjectOf(user, handle, userId, profile);
-        int reasons = FilterMatcher.account(rules, subject, info);
-        synchronized (byHandle) {
-            byHandle.put(handle, new Verdict(user, profile, subject, rules, info, reasons));
+        if (!sameAccount || e.rules != rules || e.info != info) {
+            FilterSubject subject = sameAccount ? e.subject : subjectOf(user, handle, userId, profile);
+            e = new Verdict(user, profile, subject, rules, info, FilterMatcher.exempt(rules, subject),
+                    FilterMatcher.account(rules, subject, info));
+            synchronized (byHandle) {
+                byHandle.put(handle, e);
+            }
         }
-        return reasons;
+        return e.exempt ? 0 : FilterMatcher.post(rules, e.reasons, language, quote);
     }
 
     /**
@@ -81,10 +89,18 @@ final class Verdicts {
         synchronized (byHandle) {
             e = byHandle.get(handle);
         }
-        int reasons = e != null && e.rules == rules && e.info == info
-                ? e.reasons
-                : FilterMatcher.account(rules, e != null ? e.subject : FilterSubject.minimal(handle, authorId), info);
-        return reasons | FilterMatcher.language(rules, Observed.language(postId));
+        FilterSubject subject = e != null ? e.subject : FilterSubject.minimal(handle, authorId);
+        if (FilterMatcher.exempt(rules, subject)) return 0;
+        int account = e != null && e.rules == rules && e.info == info ? e.reasons : FilterMatcher.account(rules, subject, info);
+        return FilterMatcher.post(rules, account, Observed.language(postId), false);
+    }
+
+    /** True when X last reported that the signed-in account follows this one. */
+    static boolean followedByMe(String handle) {
+        synchronized (byHandle) {
+            Verdict e = byHandle.get(handle);
+            return e != null && e.subject.followedByMe;
+        }
     }
 
     private static FilterSubject subjectOf(Object user, String handle, long userId, Observed.Profile profile) {
@@ -93,7 +109,7 @@ final class Verdicts {
         return new FilterSubject(handle, userId, ModelBridge.displayName(user), ModelBridge.bio(user),
                 profile != null ? profile.location : null, website, links(ModelBridge.bioLinks(user)),
                 ModelBridge.label(user), ModelBridge.isGovernment(user), ModelBridge.affiliation(user),
-                ModelBridge.following(user), profile != null ? profile.posts : -1);
+                ModelBridge.following(user), profile != null ? profile.posts : -1, ModelBridge.followedByMe(user));
     }
 
     private static List<String> links(List<?> entities) {

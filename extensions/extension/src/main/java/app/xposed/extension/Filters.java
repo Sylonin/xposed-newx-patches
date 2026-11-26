@@ -19,6 +19,8 @@ final class Filters {
     private static final String KEY = "filters";
     /** Countries and regions as saved before the other filter types existed. */
     private static final String LEGACY_LOCATIONS = "filter_locations";
+    /** X-Posed's author, whom X-Posed adds to Always Show on first run. Once removed, he stays removed. */
+    private static final String FIRST_RUN_ALWAYS_SHOW = "xaitax";
 
     private static volatile FilterRules rules;
 
@@ -66,13 +68,15 @@ final class Filters {
         if (json != null) {
             r = FilterRules.fromJson(json);
         } else {
+            // First run, or the first since filters were stored as JSON.
             FilterRules.Builder builder = new FilterRules.Builder();
             Set<String> legacy = prefs.getStringSet(LEGACY_LOCATIONS, null);
             if (legacy != null) {
                 for (String location : legacy) builder.addLocation(location);
             }
+            builder.addAlwaysShow(FIRST_RUN_ALWAYS_SHOW);
             r = builder.build();
-            if (legacy != null) prefs.edit().putString(KEY, r.toJson()).remove(LEGACY_LOCATIONS).apply();
+            prefs.edit().putString(KEY, r.toJson()).remove(LEGACY_LOCATIONS).apply();
         }
         rules = r;
         return r;

@@ -24,8 +24,8 @@ producing a broken app if something doesn't match.
   X draws it as one of the name's badges, next to the verified badge. Badges are not shown on
   the profile page header.
 - **Account sheet**: tap a badge to see what X reports about the account (country, connection
-  source, location accuracy, affiliation), and highlight or hide posts from that country or
-  from the account itself.
+  source, location accuracy, affiliation). From there, highlight or hide posts from that
+  country or from the account itself, or add the account to Always Show.
 - **Filters**: highlight (default) or hide posts and replies, as in X-Posed's Blocking
   settings, by:
   - country, or X region label with optional member countries;
@@ -41,6 +41,9 @@ producing a broken app if something doesn't match.
   location-warning filters. Your own posts are never filtered. X's timelines leave out the
   profile location, website and post count, so filters on these apply only to accounts whose
   profile you opened in the session.
+- **Always Show**: no filter applies to accounts on this list, by handle as in X-Posed, which
+  adds its author @xaitax on first run. An option also exempts accounts you follow, when X
+  reports the follow status.
 - **No passive engagement**: impressions, viewing time, video views and opening of filtered
   posts aren't reported to X. Likes, replies and reposts still are.
 - **Settings and statistics**: badge style with a live preview, saved filters with search and

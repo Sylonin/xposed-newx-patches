@@ -33,6 +33,8 @@ public class FilterRulesTest {
         b.warnedAccounts = true;
         b.bioMatchesLocation = true;
         b.linksMatchLocation = true;
+        b.addAlwaysShow("@XaiTax");
+        b.alwaysShowFollowing = true;
         return b.build();
     }
 
@@ -42,6 +44,8 @@ public class FilterRulesTest {
         FilterRules copy = FilterRules.fromJson(rules.toJson());
         assertEquals(rules.toJson(), copy.toJson());
         assertEquals(16, copy.size());
+        assertEquals(Collections.singleton("xaitax"), copy.alwaysShow);
+        assertTrue(copy.alwaysShowFollowing);
         assertEquals(Collections.singletonMap(12345L, "someone"), copy.accounts);
         assertEquals(Arrays.asList("india", "pakistan"), copy.regionCountries.get("south asia"));
         assertTrue(copy.coveredCountries.contains("india"));
@@ -59,6 +63,7 @@ public class FilterRulesTest {
         o.put("regionCountries", new JSONObject().put("south asia", new JSONArray(Arrays.asList("India", "Japan")))
                 .put("atlantis", new JSONArray(Collections.singletonList("India"))));
         o.put("minHandleDigits", 99);
+        o.put("alwaysShow", new JSONArray(Arrays.asList("@Friend", "not a handle", "waytoolonghandle1")));
         FilterRules rules = FilterRules.fromJson(o.toString());
         assertEquals(Collections.singletonList("example.org"), rules.links);
         assertEquals(Collections.singleton("fan"), rules.labels);
@@ -66,12 +71,23 @@ public class FilterRulesTest {
         assertEquals(Collections.singletonMap("south asia", Collections.singletonList("india")), rules.regionCountries);
         assertEquals(FilterRules.MAX_HANDLE_DIGITS, rules.minHandleDigits);
         assertTrue(rules.locationKeys.contains("germany"));
+        assertEquals(Collections.singleton("friend"), rules.alwaysShow);
     }
 
     @Test
     public void unreadableJsonGivesNoFilters() {
         assertTrue(FilterRules.fromJson("{not json").isEmpty());
         assertTrue(FilterRules.fromJson(null).isEmpty());
+    }
+
+    @Test
+    public void alwaysShowAloneFiltersNothing() {
+        FilterRules.Builder b = new FilterRules.Builder();
+        b.addAlwaysShow("xaitax");
+        b.alwaysShowFollowing = true;
+        FilterRules rules = b.build();
+        assertTrue(rules.isEmpty());
+        assertEquals(0, rules.size());
     }
 
     @Test

@@ -177,7 +177,10 @@ final class BadgeSheet implements Lookup.Listener {
         return v;
     }
 
-    /** Hide or highlight the account's country or region, or the account itself, as X-Posed's card does. */
+    /**
+     * Hide or highlight the account's country or region or the account itself, and Always Show
+     * for the account, as X-Posed's card does.
+     */
     private void addQuickFilters(AccountInfo info, long userId) {
         FilterRules rules = Filters.rules();
         boolean highlight = Settings.highlightMode();
@@ -204,9 +207,32 @@ final class BadgeSheet implements Lookup.Listener {
                 });
                 render();
             });
-            LinearLayout.LayoutParams lp = Ui.matchWidth();
-            lp.topMargin = ui.dp(12);
-            content.addView(toggle, lp);
+            addSpaced(toggle);
         }
+        boolean alwaysShown = rules.alwaysShow.contains(handle);
+        TextView always = ui.pill(alwaysShown ? "Remove @" + handle + " from Always Show" : "Always show @" + handle, false, v -> {
+            Filters.edit(b -> {
+                if (alwaysShown) b.removeAlwaysShow(handle);
+                else b.addAlwaysShow(handle);
+            });
+            render();
+        });
+        addSpaced(always);
+        String notice = alwaysShown ? "Always Show takes priority over your filters for this account."
+                : rules.alwaysShowFollowing && Verdicts.followedByMe(handle)
+                ? "You follow this account, so your setting to always show followed accounts takes priority over your filters."
+                : null;
+        if (notice != null) {
+            TextView text = ui.text(notice, 13, false, ui.secondary);
+            text.setPadding(0, ui.dp(8), 0, 0);
+            text.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+            content.addView(text, Ui.matchWidth());
+        }
+    }
+
+    private void addSpaced(View view) {
+        LinearLayout.LayoutParams lp = Ui.matchWidth();
+        lp.topMargin = ui.dp(12);
+        content.addView(view, lp);
     }
 }

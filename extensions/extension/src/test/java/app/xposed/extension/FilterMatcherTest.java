@@ -22,7 +22,7 @@ public class FilterMatcherTest {
     }
 
     private static FilterSubject user(String displayName, String bio) {
-        return new FilterSubject("someone", 42, displayName, bio, null, null, null, null, false, null, -1, -1);
+        return new FilterSubject("someone", 42, displayName, bio, null, null, null, null, false, null, -1, -1, false);
     }
 
     private static AccountInfo reported(String location) {
@@ -64,7 +64,7 @@ public class FilterMatcherTest {
     public void accountsMatchByIdWhateverTheirHandle() {
         FilterRules rules = rules(b -> b.putAccount(42, "oldhandle"));
         assertEquals(Reason.ACCOUNT.bit, match(rules, user(null, null), null));
-        FilterSubject other = new FilterSubject("someone", 43, null, null, null, null, null, null, false, null, -1, -1);
+        FilterSubject other = new FilterSubject("someone", 43, null, null, null, null, null, null, false, null, -1, -1, false);
         assertEquals(0, match(rules, other, null));
     }
 
@@ -82,7 +82,7 @@ public class FilterMatcherTest {
     @Test
     public void profileLocationCountsOnlyWhenChosen() {
         FilterSubject who = new FilterSubject("someone", 42, null, "nothing here", "airdrop hq \u00b7 t.me/x", null, null,
-                null, false, null, -1, -1);
+                null, false, null, -1, -1, false);
         FilterRules bioOnly = rules(b -> b.addBio("airdrop"));
         assertEquals(0, match(bioOnly, who, null));
         FilterRules withLocation = rules(b -> {
@@ -96,10 +96,10 @@ public class FilterMatcherTest {
     public void linksMatchWebsiteBioLinksAndOptionallyLocation() {
         FilterRules rules = rules(b -> b.addLink("t.me"));
         List<String> website = Collections.singletonList("https://t.me/channel");
-        FilterSubject site = new FilterSubject("someone", 42, null, null, null, website, null, null, false, null, -1, -1);
-        FilterSubject bio = new FilterSubject("someone", 42, null, null, null, null, website, null, false, null, -1, -1);
+        FilterSubject site = new FilterSubject("someone", 42, null, null, null, website, null, null, false, null, -1, -1, false);
+        FilterSubject bio = new FilterSubject("someone", 42, null, null, null, null, website, null, false, null, -1, -1, false);
         FilterSubject located = new FilterSubject("someone", 42, null, null, "join t.me/channel", null, null, null, false,
-                null, -1, -1);
+                null, -1, -1, false);
         assertEquals(Reason.LINK.bit, match(rules, site, null));
         assertEquals(Reason.LINK.bit, match(rules, bio, null));
         assertEquals(0, match(rules, located, null));
@@ -114,8 +114,9 @@ public class FilterMatcherTest {
     public void labelsUseXsStructuredLabelAndGreyCheck() {
         FilterRules parody = rules(b -> b.addLabel(FilterRules.PARODY));
         FilterRules government = rules(b -> b.addLabel(FilterRules.GOVERNMENT));
-        FilterSubject parodyAccount = new FilterSubject("someone", 42, null, null, null, null, null, "parody", false, null, -1, -1);
-        FilterSubject agency = new FilterSubject("someone", 42, null, null, null, null, null, null, true, null, -1, -1);
+        FilterSubject parodyAccount = new FilterSubject("someone", 42, null, null, null, null, null, "parody", false, null,
+                -1, -1, false);
+        FilterSubject agency = new FilterSubject("someone", 42, null, null, null, null, null, null, true, null, -1, -1, false);
         assertEquals(Reason.LABEL.bit, match(parody, parodyAccount, null));
         assertEquals(0, match(parody, agency, null));
         assertEquals(Reason.LABEL.bit, match(government, agency, null));
@@ -126,7 +127,7 @@ public class FilterMatcherTest {
     public void affiliationsMatchPartlyEitherWay() {
         FilterRules rules = rules(b -> b.addAffiliation("Example"));
         FilterSubject labelled = new FilterSubject("someone", 42, null, null, null, null, null, null, false,
-                "Example News Network", -1, -1);
+                "Example News Network", -1, -1, false);
         assertEquals(Reason.AFFILIATION.bit, match(rules, labelled, null));
         AccountInfo fromX = new AccountInfo(null, null, null, "example", 0, AccountInfo.ORIGIN_X, 42);
         assertEquals(Reason.AFFILIATION.bit, match(rules, user(null, null), fromX));
@@ -139,8 +140,10 @@ public class FilterMatcherTest {
             b.setMinFollowing(5000);
             b.setMinPosts(100000);
         });
-        FilterSubject atThreshold = new FilterSubject("someone", 42, null, null, null, null, null, null, false, null, 5000, 100000);
-        FilterSubject below = new FilterSubject("someone", 42, null, null, null, null, null, null, false, null, 4999, 99999);
+        FilterSubject atThreshold = new FilterSubject("someone", 42, null, null, null, null, null, null, false, null,
+                5000, 100000, false);
+        FilterSubject below = new FilterSubject("someone", 42, null, null, null, null, null, null, false, null,
+                4999, 99999, false);
         assertEquals(Reason.FOLLOWING.bit | Reason.POSTS.bit, match(rules, atThreshold, null));
         assertEquals(0, match(rules, below, null));
         assertEquals(0, match(rules, user(null, null), null));
@@ -152,7 +155,8 @@ public class FilterMatcherTest {
             b.setMinHandleDigits(5);
             b.setMinNameDigits(3);
         });
-        FilterSubject digits = new FilterSubject("a1b2c3d4e5", 42, "Bob 12", null, null, null, null, null, false, null, -1, -1);
+        FilterSubject digits = new FilterSubject("a1b2c3d4e5", 42, "Bob 12", null, null, null, null, null, false, null,
+                -1, -1, false);
         assertEquals(Reason.HANDLE_DIGITS.bit, match(rules, digits, null));
         assertEquals(Reason.NAME_DIGITS.bit, match(rules, user("\uD835\uDFD9\uD835\uDFDA\uD835\uDFDB", null), null));
     }
@@ -168,6 +172,33 @@ public class FilterMatcherTest {
         assertEquals(Reason.LOCATION_WARNING.bit | Reason.LANGUAGE.bit, post);
         assertEquals(0, FilterMatcher.match(rules, user(null, null), warned, "in", true));
         assertEquals(0, FilterMatcher.match(rules, user(null, null), reported("Germany"), "und", false));
+    }
+
+    @Test
+    public void alwaysShowBeatsEveryFilterIncludingLanguage() {
+        FilterRules rules = rules(b -> {
+            b.putAccount(42, "someone");
+            b.addLanguage("ja");
+            b.addAlwaysShow("@SomeOne");
+        });
+        assertEquals(0, FilterMatcher.match(rules, user(null, null), reported("Germany"), "ja", false));
+        FilterSubject stranger = new FilterSubject("stranger", 42, null, null, null, null, null, null, false, null,
+                -1, -1, false);
+        assertEquals(Reason.ACCOUNT.bit | Reason.LANGUAGE.bit, FilterMatcher.match(rules, stranger, null, "ja", false));
+    }
+
+    @Test
+    public void followedAccountsAreExemptOnlyWhenChosenAndReported() {
+        FilterSubject followed = new FilterSubject("someone", 42, null, null, null, null, null, null, false, null,
+                -1, -1, true);
+        FilterRules filterOnly = rules(b -> b.putAccount(42, null));
+        assertEquals(Reason.ACCOUNT.bit, match(filterOnly, followed, null));
+        FilterRules exemptFollowed = rules(b -> {
+            b.putAccount(42, null);
+            b.alwaysShowFollowing = true;
+        });
+        assertEquals(0, match(exemptFollowed, followed, null));
+        assertEquals(Reason.ACCOUNT.bit, match(exemptFollowed, user(null, null), null));
     }
 
     @Test
