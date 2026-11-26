@@ -1,3 +1,10 @@
+## [4.2.0](https://github.com/Sylonin/xposed-newx-patches/compare/v4.1.0...v4.2.0) (2026-11-26)
+
+### ✨ New Features
+
+* add Always Show list and followed-account exemption ([5e02f91](https://github.com/Sylonin/xposed-newx-patches/commit/5e02f9103f0ff089a0958947b1ba3a026305d4ab))
+* add X-Posed filters with saved list and editors ([18991c8](https://github.com/Sylonin/xposed-newx-patches/commit/18991c87e5c6683b311fb81893d7a24728d4412e))
+
 ## [4.1.0](https://github.com/Sylonin/xposed-newx-patches/compare/v4.0.0...v4.1.0) (2026-11-09)
 
 ### ✨ New Features

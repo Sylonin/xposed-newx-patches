@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-11-09T08:33:16",
-  "description": "## [4.1.0](https://github.com/Sylonin/xposed-newx-patches/compare/v4.0.0...v4.1.0) (2026-11-09)\n\n### ✨ New Features\n\n* support X 12.40.1-prod.01 and newer ([922b828](https://github.com/Sylonin/xposed-newx-patches/commit/922b8282c6dd316a4a1721a9f890776680c1d827))",
-  "download_url": "https://github.com/Sylonin/xposed-newx-patches/releases/download/v4.1.0/patches-4.1.0.mpp",
+  "created_at": "2026-11-26T21:55:46",
+  "description": "## [4.2.0](https://github.com/Sylonin/xposed-newx-patches/compare/v4.1.0...v4.2.0) (2026-11-26)\n\n### ✨ New Features\n\n* add Always Show list and followed-account exemption ([5e02f91](https://github.com/Sylonin/xposed-newx-patches/commit/5e02f9103f0ff089a0958947b1ba3a026305d4ab))\n* add X-Posed filters with saved list and editors ([18991c8](https://github.com/Sylonin/xposed-newx-patches/commit/18991c87e5c6683b311fb81893d7a24728d4412e))",
+  "download_url": "https://github.com/Sylonin/xposed-newx-patches/releases/download/v4.2.0/patches-4.2.0.mpp",
   "signature_download_url": "",
-  "version": "4.1.0"
+  "version": "4.2.0"
 }
