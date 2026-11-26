@@ -38,9 +38,20 @@ producing a broken app if something doesn't match.
   - X's location warning.
 
   A filtered quoted account only affects its quote card, and quotes ignore language and
-  location-warning filters. Your own posts are never filtered. X's timelines leave out the
-  profile location, website and post count, so filters on these apply only to accounts whose
-  profile you opened in the session.
+  location-warning filters. In Hide mode the quote collapses to a notice that names the
+  filters, with "Show quoted post". Your own posts are never filtered. A post you open is
+  highlighted rather than hidden, unless an account filter matches it. People lists
+  (followers, following, List members, search, suggestions) only highlight, so they stay
+  complete.
+- **Filter profiles**: named sets of filters to create, rename, delete and switch. Each
+  signed-in X account remembers its profile; badge settings and the cache stay shared.
+- **Filter behavior**: per profile, keep Highlight in X List timelines while other timelines
+  hide, and hide replies and quotes of filtered posts (with "Show post"). For every profile:
+  take the country from the connection source ("Switzerland App Store") instead of the
+  account location, and turn off filters on bios, links and counts.
+- **Profile details in timelines**: while a saved filter needs the profile location, website
+  or post count, X's timeline requests ask for them, so these filters work without opening
+  each profile.
 - **Always Show**: no filter applies to accounts on this list, by handle as in X-Posed, which
   adds its author @xaitax on first run. An option also exempts accounts you follow, when X
   reports the follow status.
@@ -63,8 +74,10 @@ location warning is not proof of VPN use.
 With the community cache on (default, can be turned off in settings), the handles of
 accounts you see are sent to X-Posed's cache server (`x-posed-cache.xaitax.workers.dev`),
 and what X reports about them is shared back. Your X session is never sent there. Filters are
-stored on the device. Profile details read for filters (location, website, post count) and
-post languages are kept in memory only and are gone when X closes.
+stored on the device. Profile details read for filters (location, website, post count), post
+languages and which post replies to which are kept in memory only and are gone when X closes.
+Asking X's timeline requests for profile details makes them larger but sends nothing new
+about you; turn off "Use profile details" to keep X's requests unchanged.
 
 ## Patches
 
