@@ -58,8 +58,12 @@ These rules keep the patch safe across X releases. Follow them for every new hoo
   hands `this` to `Hooks.onGraphqlApi`; lookups use the most recent one.
 - About this account: the repository with `"Missing GraphqlUser.screen_name for "` and a
   `(String, ContinuationImpl)` method (`com.x.repositories.profile.r`). Field names come from
-  the `toString` of `ProfileAboutMetadata`, `AffiliateData`, `MinimalUser` and
-  `UserWithProfileAboutMetadata`, and reach `XAboutApi` as a spec string.
+  the `toString` of `ProfileAboutMetadata` (location, source, accuracy, `verifiedSince`,
+  `verifiedSinceOverride`, `isIdVerified`, `usernameChangeData`), `UsernameChangeData`
+  (`count`), `AffiliateData`, `MinimalUser` and `UserWithProfileAboutMetadata`, and reach
+  `XAboutApi` as a spec string. The patch requires `verifiedSince` to have the type of
+  `MinimalUser.createdAt`, since one stub converts both. The result's user goes to `Observed`
+  for the account sheet.
 
 ## Badges
 
@@ -184,6 +188,26 @@ These rules keep the patch safe across X releases. Follow them for every new hoo
   `rest_id` and `userProfileOnly` (`location.location`, `website.url`, `tweet_counts.tweets`,
   and `profile_bio.entities.url.graphqlEntitySet.urls`, whose `url` matches the website to its
   `expanded_url`), as X does for `ProfileUser`.
+
+### Account sheet (`AccountCard`)
+
+- `Observed` keeps the last user model X showed per handle (300 handles): post and quote
+  authors, people rows, profiles and About results. The sheet copies it once into an
+  `AccountCard.Person`, so X's model can be freed.
+- More `ModelBridge` stubs read the user interface: `profileImageUrl`, `profileImageShape`
+  (constant `Square`), `isProtected`, `createdAt` and `RelationshipCounts.followers`.
+  `verification` maps `verifiedType` to the extension's codes from the constants `User`,
+  `Business`, `Government` and `NotVerified`; X's other types, its reserved ones, count as
+  verified.
+- `instantMillis` converts a `kotlin.time.Instant` from its only `long` field (seconds) and
+  only `int` field (nanoseconds).
+- The label (`UserLabel`): `badgeImageUrl` and `onClickOpenUrl`. Its link is an
+  `ExternalUrl` or a `Deeplink` (from `"ExternalUrl(url="` and `"Deeplink(url="`), whose
+  superclass must be the type of `onClickOpenUrl`.
+- Copy and Share write the card image under the cache directory that X's own FileProvider
+  serves (`com.x.android.fileprovider.ExternalFileProvider`, an androidx `FileProvider`, with
+  `<cache-path name="public_cache" path="public">` in 12.40). `CardImage` finds the provider
+  and path in X's manifest at runtime, so the patch changes no resources.
 
 ## Recomposition
 
