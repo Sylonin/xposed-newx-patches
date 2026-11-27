@@ -1,3 +1,9 @@
+## [4.4.0](https://github.com/Sylonin/xposed-newx-patches/compare/v4.3.1...v4.4.0) (2026-11-27)
+
+### ✨ New Features
+
+* add X-Posed's account card to the account sheet, with copy, save and share as an image ([8268589](https://github.com/Sylonin/xposed-newx-patches/commit/8268589ab3e4cac05bb00980506fcc027b5f667b))
+
 ## [4.3.1](https://github.com/Sylonin/xposed-newx-patches/compare/v4.3.0...v4.3.1) (2026-11-27)
 
 ### 🐛 Bug Fixes
