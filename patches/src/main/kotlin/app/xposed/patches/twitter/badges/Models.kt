@@ -50,16 +50,35 @@ internal fun BytecodePatchContext.writeModelBridge(user: UserModel, availablePos
     val counts = accessor("relationshipCounts")
     val pcf = accessor("parodyCommentaryFanLabel")
     val friendship = accessor("friendship")
+    // For the account sheet.
+    val avatar = accessor("profileImageUrl", STRING)
+    val avatarShape = accessor("profileImageShape")
+    val isProtected = accessor("isProtected", "Z")
+    val createdAt = accessor("createdAt")
 
-    val verification = enumConstants(verifiedType.returnType, "Government")
+    val verification = enumConstants(verifiedType.returnType, "Government", "Business", "User", "NotVerified")
     val labels = enumConstants(pcf.returnType, "Parody", "Commentary", "Fan")
+    val square = enumConstants(avatarShape.returnType, "Square").getValue("Square")
 
-    val following = toStringFields(RelationshipCountsToStringFingerprint.matchSingle().originalMethod)
-        .field("RelationshipCounts", "following", "J")
+    val countFields = toStringFields(RelationshipCountsToStringFingerprint.matchSingle().originalMethod)
+    val following = countFields.field("RelationshipCounts", "following", "J")
+    val followers = countFields.field("RelationshipCounts", "followers", "J")
     requireDefinedIn(following, counts.returnType)
-    val labelDescription = toStringFields(UserLabelToStringFingerprint.matchSingle().originalMethod)
-        .field("UserLabel", "description", STRING)
+    requireDefinedIn(followers, counts.returnType)
+    val labelFields = toStringFields(UserLabelToStringFingerprint.matchSingle().originalMethod)
+    val labelDescription = labelFields.field("UserLabel", "description", STRING)
+    val labelBadge = labelFields.field("UserLabel", "badgeImageUrl", STRING)
+    val labelLink = labelFields.field("UserLabel", "onClickOpenUrl")
     requireDefinedIn(labelDescription, userLabel.returnType)
+    requireDefinedIn(labelBadge, userLabel.returnType)
+    requireDefinedIn(labelLink, userLabel.returnType)
+    // What a label opens: web pages and deep links carry a plain URL; X's own screens don't.
+    val linkUrls = listOf(ExternalUrlToStringFingerprint to "ExternalUrl", DeeplinkToStringFingerprint to "Deeplink").map { (fingerprint, label) ->
+        val match = fingerprint.matchSingle()
+        if (match.originalClassDef.superclass != labelLink.type) throw PatchException("$label isn't a ${labelLink.type}")
+        toStringFields(match.originalMethod).field(label, "url", STRING)
+    }
+    val (instantSeconds, instantNanos) = instantFields(createdAt.returnType)
     val urls = toStringFields(PostEntityListToStringFingerprint.matchSingle().originalMethod)
         .field("PostEntityList", "urls", "Ljava/util/List;")
     requireDefinedIn(urls, entities.returnType)
@@ -104,6 +123,8 @@ internal fun BytecodePatchContext.writeModelBridge(user: UserModel, availablePos
         name, bio, verifiedType, userLabel, entities, counts, pcf, friendship, following, labelDescription, urls,
         expandedUrl, followedByMe, location, website, tweetCounts, postId, viewer, postAuthor, quotePostState, postIdValue,
         canonicalId, language, canonicalAuthor, repliedPostId, repliedToHandle, quotedStatusId,
+        avatar, avatarShape, isProtected, createdAt, square, followers, labelBadge, labelLink, *linkUrls.toTypedArray(),
+        instantSeconds, instantNanos,
         *verification.values.toTypedArray(), *labels.values.toTypedArray(),
     )
 
@@ -126,20 +147,6 @@ internal fun BytecodePatchContext.writeModelBridge(user: UserModel, availablePos
     )
     stub("displayName", 1, "${userCall(name)}\nmove-result-object v0\nreturn-object v0")
     stub("bio", 1, "${userCall(bio)}\nmove-result-object v0\nreturn-object v0")
-    stub(
-        "isGovernment", 2,
-        """
-        ${userCall(verifiedType)}
-        move-result-object v0
-        sget-object v1, ${verification.getValue("Government").descriptor}
-        if-ne v0, v1, :other
-        const/4 v0, 0x1
-        return v0
-        :other
-        const/4 v0, 0x0
-        return v0
-        """,
-    )
     stub(
         "label", 2,
         """
@@ -217,6 +224,120 @@ internal fun BytecodePatchContext.writeModelBridge(user: UserModel, availablePos
         const/4 v0, 0x0
         return-object v0
         """,
+    )
+    // The account sheet: header, activity counts and account age.
+    stub("avatarUrl", 1, "${userCall(avatar)}\nmove-result-object v0\nreturn-object v0")
+    stub(
+        "squareAvatar", 2,
+        """
+        ${userCall(avatarShape)}
+        move-result-object v0
+        sget-object v1, ${square.descriptor}
+        if-ne v0, v1, :circle
+        const/4 v0, 0x1
+        return v0
+        :circle
+        const/4 v0, 0x0
+        return v0
+        """,
+    )
+    // Codes of ModelBridge.verification: X's blue (User), gold (Business) and grey (Government) checks.
+    stub(
+        "verification", 2,
+        """
+        ${userCall(verifiedType)}
+        move-result-object v0
+        sget-object v1, ${verification.getValue("User").descriptor}
+        if-ne v0, v1, :not_blue
+        const/4 v0, 0x1
+        return v0
+        :not_blue
+        sget-object v1, ${verification.getValue("Business").descriptor}
+        if-ne v0, v1, :not_business
+        const/4 v0, 0x2
+        return v0
+        :not_business
+        sget-object v1, ${verification.getValue("Government").descriptor}
+        if-ne v0, v1, :not_government
+        const/4 v0, 0x3
+        return v0
+        :not_government
+        if-eqz v0, :none
+        sget-object v1, ${verification.getValue("NotVerified").descriptor}
+        if-eq v0, v1, :none
+        const/4 v0, 0x4
+        return v0
+        :none
+        const/4 v0, 0x0
+        return v0
+        """,
+    )
+    stub("isProtected", 1, "${userCall(isProtected)}\nmove-result v0\nreturn v0")
+    stub("createdAt", 1, "${userCall(createdAt)}\nmove-result-object v0\nreturn-object v0")
+    stub(
+        "instantMillis", 6,
+        """
+        if-eqz p0, :unknown
+        check-cast p0, ${instantSeconds.definingClass}
+        iget-wide v0, p0, ${instantSeconds.descriptor}
+        const-wide/16 v2, 0x3e8
+        mul-long/2addr v0, v2
+        iget v2, p0, ${instantNanos.descriptor}
+        const v3, 0xf4240
+        div-int/2addr v2, v3
+        int-to-long v4, v2
+        add-long/2addr v0, v4
+        return-wide v0
+        :unknown
+        const-wide/16 v0, 0x0
+        return-wide v0
+        """,
+    )
+    stub(
+        "followers", 2,
+        """
+        ${userCall(counts)}
+        move-result-object v0
+        if-eqz v0, :unknown
+        iget-wide v0, v0, ${followers.descriptor}
+        return-wide v0
+        :unknown
+        const-wide/16 v0, -0x1
+        return-wide v0
+        """,
+    )
+    stub(
+        "labelBadgeUrl", 1,
+        """
+        ${userCall(userLabel)}
+        move-result-object v0
+        if-eqz v0, :none
+        iget-object v0, v0, ${labelBadge.descriptor}
+        return-object v0
+        :none
+        const/4 v0, 0x0
+        return-object v0
+        """,
+    )
+    stub(
+        "labelUrl", 2,
+        buildString {
+            appendLine(userCall(userLabel))
+            appendLine("move-result-object v0")
+            appendLine("if-eqz v0, :none")
+            appendLine("iget-object v0, v0, ${labelLink.descriptor}")
+            linkUrls.forEachIndexed { i, url ->
+                appendLine("instance-of v1, v0, ${url.definingClass}")
+                appendLine("if-eqz v1, :not_$i")
+                appendLine("check-cast v0, ${url.definingClass}")
+                appendLine("iget-object v0, v0, ${url.descriptor}")
+                appendLine("return-object v0")
+                appendLine(":not_$i")
+            }
+            appendLine(":none")
+            appendLine("const/4 v0, 0x0")
+            appendLine("return-object v0")
+        },
     )
     val urlEntityClass = urlEntity.originalClassDef.type
     stub(
@@ -402,4 +523,10 @@ internal fun BytecodePatchContext.enumConstants(type: String, vararg names: Stri
 
 private fun requireDefinedIn(field: FieldReference, type: String) {
     if (field.definingClass != type) throw PatchException("${field.descriptor} is not a field of $type")
+}
+
+/** The epoch seconds (long) and nanoseconds (int) of kotlin.time.Instant, [type]. */
+private fun BytecodePatchContext.instantFields(type: String): Pair<FieldReference, FieldReference> {
+    val fields = classDefBy(type).fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) }
+    return fields.filter { it.type == "J" }.single("long field of $type") to fields.filter { it.type == "I" }.single("int field of $type")
 }

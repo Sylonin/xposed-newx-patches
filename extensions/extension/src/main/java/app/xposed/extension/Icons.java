@@ -94,6 +94,22 @@ final class Icons {
 
     static final Glyphs.Glyph CHECK = lines("M20 6 9 17l-5-5");
 
+    /** copy.svg */
+    static final Glyphs.Glyph COPY = new Glyphs.Glyph(
+            rect(9, 9, 13, 13, 2),
+            path("M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"));
+
+    /** download.svg */
+    static final Glyphs.Glyph DOWNLOAD = lines("M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4", "m7 10 5 5 5-5", "M12 15V3");
+
+    /** share-2.svg */
+    static final Glyphs.Glyph SHARE = new Glyphs.Glyph(
+            circle(18, 5, 3),
+            circle(6, 12, 3),
+            circle(18, 19, 3),
+            path("M8.59 13.51 15.42 17.49"),
+            path("M15.41 6.51 8.59 10.49"));
+
     /** chevron-down.svg */
     static final Glyphs.Glyph EXPAND = lines("m6 9 6 6 6-6");
 

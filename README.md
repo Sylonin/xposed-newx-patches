@@ -23,9 +23,16 @@ producing a broken app if something doesn't match.
   messages: country flag, optional device icon and location-warning shield, and the circled-i.
   X draws it as one of the name's badges, next to the verified badge. Badges are not shown on
   the profile page header.
-- **Account sheet**: tap a badge to see what X reports about the account (country, connection
-  source, location accuracy, affiliation). From there, highlight or hide posts from that
-  country or from the account itself, or add the account to Always Show.
+- **Account sheet**: tap a badge for X-Posed's account card. It shows the profile picture,
+  name and checkmark (blue, gold for organizations, grey for government), "Identity
+  verified" and "Protected", the country, connection source and location accuracy, and
+  followers, following and posts. Under "Account details" it lists when the account was
+  created and its age, when it was verified, how often its handle changed, its affiliation
+  with the organization's badge and link, and its user ID; tap the ID to copy a link to the
+  account that keeps working after handle changes. X doesn't load media counts, so the card
+  has none. Copy, save (to Pictures/X-Posed) or share the card as an image in X's current
+  theme. From the sheet, highlight or hide posts from that country or from the account
+  itself, or add the account to Always Show.
 - **Filters**: highlight (default) or hide posts and replies, as in X-Posed's Blocking
   settings, by:
   - country, or X region label with optional member countries;
@@ -75,9 +82,17 @@ With the community cache on (default, can be turned off in settings), the handle
 accounts you see are sent to X-Posed's cache server (`x-posed-cache.xaitax.workers.dev`),
 and what X reports about them is shared back. Your X session is never sent there. Filters are
 stored on the device. Profile details read for filters (location, website, post count), post
-languages and which post replies to which are kept in memory only and are gone when X closes.
+languages, which post replies to which, and the names, pictures and counts the account sheet
+shows are kept in memory only and are gone when X closes.
 Asking X's timeline requests for profile details makes them larger but sends nothing new
-about you; turn off "Use profile details" to keep X's requests unchanged.
+about you; turn off "Use profile details" to keep X's requests unchanged. That setting also
+turns off the account sheet's activity counts, which come from data X already loaded.
+
+Opening the account sheet asks X's "About this account" once per account and session when
+the sheet lacks the account's history, as X's own "About this account" page does. The sheet
+loads profile pictures and affiliation badges from X's image server (`pbs.twimg.com`) and
+keeps them in memory only. Card images are made on the device. Copy and Share hand them to
+other apps through X's own file provider; Save adds them to Pictures/X-Posed.
 
 ## Patches
 

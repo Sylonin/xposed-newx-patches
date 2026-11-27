@@ -9,6 +9,10 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.DynamicDrawableSpan;
+import android.text.style.ImageSpan;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -106,6 +110,16 @@ final class Ui {
         v.setBackgroundColor(divider);
         v.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.max(1, dp(0.5f))));
         return v;
+    }
+
+    /** An icon that sits in text like a character, sizePx square and centered on its line. */
+    static CharSequence inlineIcon(Glyphs.Glyph glyph, int color, float sizePx) {
+        Drawable d = glyph.asDrawable(color);
+        int size = Math.round(sizePx);
+        d.setBounds(0, 0, size, size);
+        SpannableString s = new SpannableString("\uFFFC");
+        s.setSpan(new ImageSpan(d, DynamicDrawableSpan.ALIGN_CENTER), 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return s;
     }
 
     static LinearLayout.LayoutParams matchWidth() {

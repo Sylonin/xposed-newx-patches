@@ -35,8 +35,54 @@ public final class ModelBridge {
         throw notPatched();
     }
 
-    /** True for the grey government or multilateral checkmark. */
-    public static boolean isGovernment(Object user) {
+    /** Codes of {@link #verification}: X's blue, gold and grey checks, and a check of another kind. */
+    public static final int NOT_VERIFIED = 0, VERIFIED_BLUE = 1, VERIFIED_BUSINESS = 2, VERIFIED_GOVERNMENT = 3,
+            VERIFIED_OTHER = 4;
+
+    /**
+     * The checkmark X shows: blue for X Premium, gold for businesses and organizations, grey for
+     * governments and multilateral organizations. One of the codes above.
+     */
+    public static int verification(Object user) {
+        throw notPatched();
+    }
+
+    /** The profile picture on X's image server, or null. */
+    public static String avatarUrl(Object user) {
+        throw notPatched();
+    }
+
+    /** True when X shows the profile picture as a rounded square, as for organizations, not a circle. */
+    public static boolean squareAvatar(Object user) {
+        throw notPatched();
+    }
+
+    public static boolean isProtected(Object user) {
+        throw notPatched();
+    }
+
+    /** When the account was created, a kotlin.time.Instant for {@link #instantMillis}, or null. */
+    public static Object createdAt(Object user) {
+        throw notPatched();
+    }
+
+    /** A kotlin.time.Instant in epoch milliseconds, or 0 for null. */
+    public static long instantMillis(Object instant) {
+        throw notPatched();
+    }
+
+    /** Accounts following this one, or -1. */
+    public static long followers(Object user) {
+        throw notPatched();
+    }
+
+    /** The image of the account's highlighted label, such as its affiliated organization's picture, or null. */
+    public static String labelBadgeUrl(Object user) {
+        throw notPatched();
+    }
+
+    /** The web page or deep link the highlighted label opens, or null when it opens a screen of X's. */
+    public static String labelUrl(Object user) {
         throw notPatched();
     }
 

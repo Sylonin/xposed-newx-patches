@@ -110,6 +110,18 @@ internal object UserLabelToStringFingerprint : Fingerprint(
     strings = listOf("UserLabel(type="),
 )
 
+/** A label's link to a web page. */
+internal object ExternalUrlToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("ExternalUrl(url="),
+)
+
+/** A label's deep link. */
+internal object DeeplinkToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("Deeplink(url="),
+)
+
 internal object PostEntityListToStringFingerprint : Fingerprint(
     name = "toString",
     strings = listOf("PostEntityList(mentions="),

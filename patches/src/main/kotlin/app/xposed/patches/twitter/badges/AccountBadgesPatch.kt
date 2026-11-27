@@ -30,6 +30,7 @@ import app.xposed.patches.twitter.util.requireLocals
 import app.xposed.patches.twitter.util.single
 import app.xposed.patches.twitter.util.toJavaClassName
 import app.xposed.patches.twitter.util.toStringFields
+import app.xposed.patches.twitter.util.toStringFieldsOf
 import app.xposed.patches.twitter.util.typeRef
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -740,14 +741,24 @@ private fun BytecodePatchContext.writeAboutApiSpec() {
     val appSource = aboutFields.field("ProfileAboutMetadata", "appSource", STRING)
     val accurate = aboutFields.field("ProfileAboutMetadata", "isLocationAccurate", "Z")
     val affiliate = aboutFields.field("ProfileAboutMetadata", "affiliateData")
+    // The account sheet's history: verified since (a date, or a year X shows instead) and handle changes.
+    val verifiedSince = aboutFields.field("ProfileAboutMetadata", "verifiedSince")
+    val verifiedYear = aboutFields.field("ProfileAboutMetadata", "verifiedSinceOverride", "Ljava/lang/Long;")
+    val idVerified = aboutFields.field("ProfileAboutMetadata", "isIdVerified", "Ljava/lang/Boolean;")
+    val usernameChanges = aboutFields.field("ProfileAboutMetadata", "usernameChangeData")
+    val changeCount = toStringFieldsOf(usernameChanges.type).field("UsernameChangeData", "count", "I")
 
     val affiliateData = AffiliateDataToStringFingerprint.matchSingle()
     if (affiliateData.originalClassDef.type != affiliate.type) throw PatchException("affiliateData is ${affiliate.type}")
     val username = toStringFields(affiliateData.originalMethod).field("AffiliateData", "username", STRING)
 
     val minimalUser = MinimalUserToStringFingerprint.matchSingle()
-    val id = toStringFields(minimalUser.originalMethod).field("MinimalUser", "id")
+    val minimalFields = toStringFields(minimalUser.originalMethod)
+    val id = minimalFields.field("MinimalUser", "id")
     val idValue = instanceField(id.type, "long id field of ${id.type}") { it.type == "J" }
+    // ModelBridge.instantMillis reads the Instant type of MinimalUser.createdAt.
+    val createdAt = minimalFields.field("MinimalUser", "createdAt")
+    if (verifiedSince.type != createdAt.type) throw PatchException("verifiedSince is ${verifiedSince.type}, not ${createdAt.type}")
 
     // The repository's result holds exactly these two.
     val payload = toStringFields(UserWithAboutToStringFingerprint.matchSingle().originalMethod)
@@ -768,6 +779,11 @@ private fun BytecodePatchContext.writeAboutApiSpec() {
             minimalUser.originalClassDef.type.toJavaClassName(),
             id.name,
             idValue.name,
+            verifiedSince.name,
+            verifiedYear.name,
+            idVerified.name,
+            usernameChanges.name,
+            changeCount.name,
         ).joinToString("|"),
     )
 }
