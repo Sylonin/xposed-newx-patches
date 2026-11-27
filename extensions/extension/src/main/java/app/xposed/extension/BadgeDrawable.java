@@ -134,7 +134,8 @@ final class BadgeDrawable extends Drawable implements NameBadges.Image {
     }
 
     /** Width over height. */
-    float aspectRatio() {
+    @Override
+    public float aspectRatio() {
         return width / size.height;
     }
 
@@ -269,8 +270,13 @@ final class BadgeDrawable extends Drawable implements NameBadges.Image {
         }
 
         @Override
+        public float aspectRatio() {
+            return width / size.height;
+        }
+
+        @Override
         public Bitmap toBitmap(int heightPx) {
-            return render(this, heightPx, width / size.height);
+            return render(this, heightPx, aspectRatio());
         }
 
         @Override

@@ -29,6 +29,9 @@ final class NameBadges {
         /** Height relative to the medium badge size, which is as tall as X's verified badge. */
         float relativeHeight();
 
+        /** Width over height. */
+        float aspectRatio();
+
         Bitmap toBitmap(int heightPx);
     }
 
@@ -69,6 +72,9 @@ final class NameBadges {
     };
     private static final WeakIdentityMap<Made> made = new WeakIdentityMap<>();
     private static volatile boolean broken;
+    /** The badge whose inline placeholder the row builds next, when it is ours. */
+    private static final ThreadLocal<Rendered> inline = new ThreadLocal<>();
+    private static volatile boolean inlineBroken;
 
     /**
      * Lists we returned, by what they were made from. Equal inputs give the same list, so X can
@@ -189,6 +195,61 @@ final class NameBadges {
         // Not caught: a failure inside a composable leaves the composition unusable anyway.
         ComposeBridge.image(painter, description, modifier, composer);
         return true;
+    }
+
+    /**
+     * Called with each badge item of a row that lays badges out as inline text content, just
+     * before X builds the item's placeholder.
+     */
+    static void noteInline(Object item) {
+        if (inlineBroken) return;
+        try {
+            String url = ComposeBridge.badgeUrl(item);
+            Rendered r = null;
+            if (url != null && url.startsWith(URL_PREFIX)) {
+                synchronized (rendered) {
+                    r = rendered.get(url);
+                }
+            }
+            if (r != null) inline.set(r);
+            else inline.remove();
+        } catch (Throwable t) {
+            inlineBroken = true;
+            inline.remove();
+            Log.e(Hooks.TAG, "Failed to read inline badge", t);
+        }
+    }
+
+    /**
+     * X gives every inline badge a square placeholder one badge size wide, which would shrink
+     * ours to fit. Returns a placeholder with the shape and height of the noted badge instead.
+     */
+    static Object inlinePlaceholder(Object placeholder) {
+        Rendered r = inline.get();
+        inline.remove();
+        if (r == null || inlineBroken) return placeholder;
+        try {
+            float height = r.image.relativeHeight();
+            return ComposeBridge.placeholder(
+                    scaleTextUnit(ComposeBridge.placeholderWidth(placeholder), height * r.image.aspectRatio()),
+                    scaleTextUnit(ComposeBridge.placeholderHeight(placeholder), height),
+                    ComposeBridge.placeholderAlign(placeholder));
+        } catch (Throwable t) {
+            inlineBroken = true;
+            Log.e(Hooks.TAG, "Failed to size inline badge", t);
+            return placeholder;
+        }
+    }
+
+    /**
+     * Multiplies a packed Compose TextUnit: the unit type in bits 32-39 and the value as a float
+     * in the low 32 bits. An unspecified size stays unspecified.
+     */
+    static long scaleTextUnit(long textUnit, float factor) {
+        long type = textUnit & 0xFF00000000L;
+        if (type == 0) return textUnit;
+        float value = Float.intBitsToFloat((int) textUnit);
+        return type | (Float.floatToRawIntBits(value * factor) & 0xFFFFFFFFL);
     }
 
     /** Says what the flag shows: the account location, or the country of the connection source. */

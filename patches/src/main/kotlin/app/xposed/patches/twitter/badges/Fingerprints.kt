@@ -13,6 +13,7 @@ internal const val COMPOSER = "Landroidx/compose/runtime/Composer;"
 internal const val FUNCTION0 = "Lkotlin/jvm/functions/Function0;"
 internal const val FUNCTION1 = "Lkotlin/jvm/functions/Function1;"
 internal const val STRING = "Ljava/lang/String;"
+internal const val OBJECT = "Ljava/lang/Object;"
 internal const val LAYOUT_PACKAGE = "Landroidx/compose/foundation/layout/"
 internal const val LOG_EVENT = "Lcom/x/thrift/clientapp/gen/LogEvent;"
 

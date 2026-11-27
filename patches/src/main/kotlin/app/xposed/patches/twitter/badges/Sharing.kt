@@ -35,7 +35,6 @@ import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val INSTANT = "Lkotlin/time/Instant;"
-private const val OBJECT = "Ljava/lang/Object;"
 
 private val Method.types get() = parameterTypes.map { it.toString() }
 private val Method.isStatic get() = AccessFlags.STATIC.isSet(accessFlags)

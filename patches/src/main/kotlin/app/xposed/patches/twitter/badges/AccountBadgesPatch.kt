@@ -156,6 +156,7 @@ val accountBadgesPatch = bytecodePatch(
                 )
             }
         }
+        hookInlineBadges(badges.nameRows.map { it.first }, badges.itemType, badges.url)
 
         // Whose each badge list is, and the post of each post header's list.
         val rowClass = badges.composable.originalClassDef

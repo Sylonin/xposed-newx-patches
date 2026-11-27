@@ -161,6 +161,19 @@ public final class Hooks {
     }
 
     /**
+     * Called in name rows that lay badges out as inline text content, with each badge item before
+     * its placeholder is built.
+     */
+    public static void noteInlineBadge(Object item) {
+        NameBadges.noteInline(item);
+    }
+
+    /** The placeholder X built for the noted badge, widened when the badge is ours. */
+    public static Object inlineBadgePlaceholder(Object placeholder) {
+        return NameBadges.inlinePlaceholder(placeholder);
+    }
+
+    /**
      * Called at the start of X's post and quote composables with the author, the AvailablePost
      * (null for quotes), the modifier (null when they use the default), the composer, the row's
      * PaddingValues (null when it has none) and whether it is the opened post. Returns
