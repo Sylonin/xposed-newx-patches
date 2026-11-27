@@ -38,8 +38,9 @@ producing a broken app if something doesn't match.
   badge on posts. It makes an image of the post as X-Posed's evidence card: author, text,
   up to four photos, date and counts, and what X reports about the account's location and
   connection, with the post's link and the capture time in UTC. Copy, save or share the
-  image, or write a caption and continue to X's composer as a quote, reply or new post with
-  the image attached. Nothing is posted until you post it in X.
+  image. Under "Post on X", "Open in X" opens X's own post composer with the image attached
+  and your text, as a quote of the post, a reply to it or a new post. Nothing is posted until
+  you tap Post in X.
 - **Filters**: highlight (default) or hide posts and replies, as in X-Posed's Blocking
   settings, by:
   - country, or X region label with optional member countries;
@@ -102,7 +103,7 @@ keeps them in memory only. Card images are made on the device. Copy and Share ha
 other apps through X's own file provider; Save adds them to Pictures/X-Posed.
 
 Post cards use only what X already loaded for the post. The photos on them load from X's
-image server. "Continue to X" opens X's own composer and posts nothing by itself.
+image server. "Open in X" opens X's own composer and posts nothing by itself.
 
 ## Patches
 

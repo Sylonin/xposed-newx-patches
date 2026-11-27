@@ -89,6 +89,12 @@ These rules keep the patch safe across X releases. Follow them for every new hoo
   so the hook returns a new empty list instead, and each row keeps a list of its own. The
   patch builds it with the `(Object[])` constructor of the list type's array-backed class,
   the one with a static instance of itself (`immutableList.h`).
+- `y.g` lays badges out as inline text content: each gets a square `Placeholder` one badge
+  size wide, which would shrink ours to fit. After the row casts a badge item, it calls
+  `Hooks.noteInlineBadge(item)`. The `Placeholder` it builds next (the class with
+  `"Placeholder(width="`) passes through `Hooks.inlineBadgePlaceholder`, which returns one
+  with our badge's width and height. The patch requires that the cast reaches the
+  placeholder without a branch, so each note pairs with its own placeholder.
 - Compose restarts a row with the arguments of its last run, which for a hooked row is the
   list with the badge in it. `NameBadges` remembers the lists it made and unwraps them, so a
   restart neither adds a second badge nor loses the owner.
@@ -113,7 +119,7 @@ These rules keep the patch safe across X releases. Follow them for every new hoo
   `inlineActionEntry` (`InlineActionEntry`: `actionType` and `count`). The action types
   `Reply`, `Retweet`, `UndoRetweet`, `Favorite`, `Unfavorite` and `ViewCount` are read as
   enum constants.
-- "Continue to X" sends `ACTION_SEND` with the card image to the activity alias whose name
+- "Open in X" sends `ACTION_SEND` with the card image to the activity alias whose name
   ends in `.ComposerActivity` (`com.twitter.composer.ComposerActivity`, exported for
   `image/*` and `text/plain`). X's own handler (`com.x.composer.deeplink.a`) opens a reply
   when the intent has a `replied_tweet_id` extra, and a new post otherwise. The patch finds it
