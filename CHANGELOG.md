@@ -1,3 +1,9 @@
+## [4.5.1](https://github.com/Sylonin/xposed-newx-patches/compare/v4.5.0...v4.5.1) (2026-11-27)
+
+### 🐛 Bug Fixes
+
+* find X 12.41's composer share handler ([b5f55a7](https://github.com/Sylonin/xposed-newx-patches/commit/b5f55a7778fe762b48884459bebf3689ef8523db))
+
 ## [4.5.0](https://github.com/Sylonin/xposed-newx-patches/compare/v4.4.0...v4.5.0) (2026-11-27)
 
 ### ✨ New Features
