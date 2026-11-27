@@ -150,26 +150,25 @@ final class PostShareSheet {
         content.addView(status, Ui.matchWidth());
 
         if (composer != null) {
+            TextView heading = ui.text("Post on X", 17, true, ui.text);
+            heading.setAccessibilityHeading(true);
+            heading.setPadding(0, ui.dp(24), 0, ui.dp(4));
+            content.addView(heading, Ui.matchWidth());
+            content.addView(ui.text("Opens X's own post composer with this image attached and the text below. "
+                    + "Nothing is posted until you tap Post there.", 13, false, ui.secondary), Ui.matchWidth());
             addCaption(content);
             addModes(content);
-            primary = ui.pill("Continue to X", true, v -> continueToX());
-            primary.setContentDescription("Continue to X's composer");
+            primary = ui.pill("Open in X", true, v -> continueToX());
+            primary.setContentDescription("Open X's post composer");
             LinearLayout.LayoutParams primaryLp = Ui.matchWidth();
             primaryLp.topMargin = ui.dp(20);
             content.addView(ui.wrapping(primary), primaryLp);
-            TextView guide = ui.text("X's composer opens with the image and caption. Review them there, then post. "
-                    + "Location may be approximate.", 13, false, ui.secondary);
-            guide.setPadding(0, ui.dp(12), 0, 0);
-            content.addView(guide, Ui.matchWidth());
         }
-        TextView footnote = ui.text("Nothing is posted automatically.", 13, true, ui.secondary);
-        footnote.setPadding(0, ui.dp(8), 0, 0);
-        content.addView(footnote, Ui.matchWidth());
         updateEnabled();
     }
 
     private void addCaption(LinearLayout content) {
-        TextView label = ui.text("Caption", 15, true, ui.text);
+        TextView label = ui.text("Post text", 15, true, ui.text);
         label.setPadding(0, ui.dp(20), 0, ui.dp(8));
         content.addView(label, Ui.matchWidth());
 
@@ -195,7 +194,7 @@ final class PostShareSheet {
 
         LinearLayout meta = new LinearLayout(context);
         meta.setPadding(0, ui.dp(6), 0, 0);
-        meta.addView(ui.text("Edit before continuing", 13, false, ui.secondary),
+        meta.addView(ui.text("You can still edit it in X", 13, false, ui.secondary),
                 new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
         TextView count = ui.text("", 13, false, ui.secondary);
         count.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_END);
@@ -225,7 +224,7 @@ final class PostShareSheet {
 
     /** Quote, Reply and New post as a single choice, with what the chosen one does. */
     private void addModes(LinearLayout content) {
-        TextView label = ui.text("Share as", 15, true, ui.text);
+        TextView label = ui.text("Post as", 15, true, ui.text);
         label.setAccessibilityHeading(true);
         label.setPadding(0, ui.dp(20), 0, ui.dp(8));
         content.addView(label, Ui.matchWidth());

@@ -28,9 +28,9 @@ final class PostCard {
 
     /** How the post with the card goes to X's composer. */
     enum Mode {
-        QUOTE("Quote", "Opens X's composer with the original post quoted."),
-        REPLY("Reply", "Opens X's composer with a reply to the original post."),
-        POST("New post", "Opens X's composer with a new post that mentions this account.");
+        QUOTE("Quote", "Your post quotes this post."),
+        REPLY("Reply", "Your post replies to this post."),
+        POST("New post", "A new post that mentions this account at the end.");
 
         final String label, description;
 
