@@ -95,10 +95,10 @@ final class AccountCardView {
         TextView title = ui.text(name, 19, true, ui.text);
         title.setMaxLines(3);
         title.setEllipsize(TextUtils.TruncateAt.END);
-        String check = checkLabel();
+        String check = checkLabel(card.verification);
         if (check != null) {
             title.setText(new SpannableStringBuilder(name).append('\u00A0')
-                    .append(Ui.inlineIcon(Icons.LABEL, checkColor(), title.getTextSize())));
+                    .append(Ui.inlineIcon(Icons.LABEL, checkColor(ui, card.verification), title.getTextSize())));
             title.setContentDescription(name + ", " + check);
         }
         titles.addView(title);
@@ -113,8 +113,9 @@ final class AccountCardView {
         root.addView(header, Ui.matchWidth());
     }
 
-    private String checkLabel() {
-        switch (card.verification) {
+    /** What X's checkmark of a verification code means, or null without one. */
+    static String checkLabel(int verification) {
+        switch (verification) {
             case ModelBridge.VERIFIED_BLUE:
                 return "Blue verified";
             case ModelBridge.VERIFIED_BUSINESS:
@@ -128,8 +129,8 @@ final class AccountCardView {
         }
     }
 
-    private int checkColor() {
-        switch (card.verification) {
+    static int checkColor(Ui ui, int verification) {
+        switch (verification) {
             case ModelBridge.VERIFIED_BLUE:
                 return ui.dark ? BLUE_DARK : BLUE_LIGHT;
             case ModelBridge.VERIFIED_BUSINESS:
@@ -236,7 +237,7 @@ final class AccountCardView {
     }
 
     /** Exact below a million, then short ("1.2M"), as X-Posed shows counts. */
-    private static String compact(long value) {
+    static String compact(long value) {
         if (value < 1_000_000) return NumberFormat.getIntegerInstance().format(value);
         CompactDecimalFormat format = CompactDecimalFormat.getInstance(Locale.getDefault(), CompactDecimalFormat.CompactStyle.SHORT);
         format.setMaximumFractionDigits(1);
@@ -446,7 +447,7 @@ final class AccountCardView {
     }
 
     /** A bitmap cropped to fill its bounds, with rounded corners. */
-    private static final class RoundedBitmap extends Drawable {
+    static final class RoundedBitmap extends Drawable {
         private final Bitmap bitmap;
         private final float radius;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);

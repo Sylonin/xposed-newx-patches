@@ -132,6 +132,38 @@ internal object UrlEntityToStringFingerprint : Fingerprint(
     strings = listOf("UrlEntity(displayUrl="),
 )
 
+/** The code point range of a post's text that X shows, without reply mentions and media links. */
+internal object DisplayTextRangeToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("DisplayTextRange(startIdx="),
+)
+
+/** A photo of a post. */
+internal object MediaContentImageToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("MediaContentImage(mediaId="),
+)
+
+/** An entry of a post's action bar, with its count. */
+internal object InlineActionEntryToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("InlineActionEntry(actionType="),
+)
+
+/** The composer's arguments for quoting a post. */
+internal object QuoteAPostToStringFingerprint : Fingerprint(
+    name = "toString",
+    strings = listOf("QuoteAPost(quotedPostId="),
+)
+
+/** The composer's handling of share intents: SEND and SEND_MULTIPLE, with X's reply extra. */
+internal object ComposerShareIntentFingerprint : Fingerprint(
+    name = "invoke",
+    returnType = "Ljava/lang/Object;",
+    parameters = listOf("Ljava/lang/Object;"),
+    strings = listOf("replied_tweet_id", "android.intent.action.SEND_MULTIPLE"),
+)
+
 /** The client event reporter every LogEvent goes through. */
 internal object EventReporterFingerprint : Fingerprint(
     returnType = "V",

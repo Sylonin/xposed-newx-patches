@@ -181,6 +181,89 @@ public final class ModelBridge {
         throw notPatched();
     }
 
+    /** AvailablePost: when it was posted, a kotlin.time.Instant for {@link #instantMillis}, or null. */
+    public static Object postTime(Object availablePost) {
+        throw notPatched();
+    }
+
+    /** CanonicalPost: when it was posted, a kotlin.time.Instant for {@link #instantMillis}, or null. */
+    public static Object canonicalTime(Object canonicalPost) {
+        throw notPatched();
+    }
+
+    /** CanonicalPost: the full text, with t.co links and any leading reply mentions. */
+    public static String postText(Object canonicalPost) {
+        throw notPatched();
+    }
+
+    /** CanonicalPost: the first code point of the text X shows, or -1 without a range. */
+    public static int textStart(Object canonicalPost) {
+        throw notPatched();
+    }
+
+    /** CanonicalPost: the code point after the text X shows, or -1 without a range. */
+    public static int textEnd(Object canonicalPost) {
+        throw notPatched();
+    }
+
+    /** CanonicalPost: the link entities of the text (UrlEntity), or null. */
+    public static List<?> postLinks(Object canonicalPost) {
+        throw notPatched();
+    }
+
+    /** UrlEntity: the t.co link in the text, or null. */
+    public static String linkUrl(Object urlEntity) {
+        throw notPatched();
+    }
+
+    /** CanonicalPost: its photos, videos and GIFs, or null. */
+    public static List<?> postMedia(Object canonicalPost) {
+        throw notPatched();
+    }
+
+    /** A media item: the image URL when it is a photo, else null. */
+    public static String photoUrl(Object media) {
+        throw notPatched();
+    }
+
+    /** A photo: its width in pixels, or 0. */
+    public static long photoWidth(Object media) {
+        throw notPatched();
+    }
+
+    /** A photo: its height in pixels, or 0. */
+    public static long photoHeight(Object media) {
+        throw notPatched();
+    }
+
+    /** A photo: true when X shows it behind a sensitive media warning. */
+    public static boolean photoSensitive(Object media) {
+        throw notPatched();
+    }
+
+    /** CanonicalPost: its action bar entries (InlineActionEntry), with their counts, or null. */
+    public static List<?> postActions(Object canonicalPost) {
+        throw notPatched();
+    }
+
+    /** InlineActionEntry: the action's enum name, such as "Reply" or "ViewCount", or null. */
+    public static String actionName(Object entry) {
+        throw notPatched();
+    }
+
+    /** InlineActionEntry: the count shown beside it, or -1. */
+    public static long actionCount(Object entry) {
+        throw notPatched();
+    }
+
+    /**
+     * X's composer arguments for a quote of post [postId] with [text] and the image at
+     * [mediaUri] (a content URI, or null) attached.
+     */
+    public static Object quoteArgs(long postId, String text, String mediaUri) {
+        throw notPatched();
+    }
+
     /** True when a timeline host (from {@link ComposeBridge#timelineHost}) shows a curated List. */
     public static boolean isListTimeline(Object host) {
         throw notPatched();

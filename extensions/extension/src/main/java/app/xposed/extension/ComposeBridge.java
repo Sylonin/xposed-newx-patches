@@ -81,6 +81,11 @@ public final class ComposeBridge {
         throw notPatched();
     }
 
+    /** A new empty list of X's badge list type, unlike {@code persistentListOf()}, which is shared. */
+    public static Object emptyImmutableList() {
+        throw notPatched();
+    }
+
     /** X's Affiliate badge item {@code (contentDescription, badgeImageUrl, onClickOpenUrl = null)}. */
     public static Object affiliateBadge(String contentDescription, String url) {
         throw notPatched();

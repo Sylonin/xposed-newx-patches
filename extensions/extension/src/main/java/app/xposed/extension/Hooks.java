@@ -2,9 +2,11 @@ package app.xposed.extension;
 
 import android.app.Application;
 import android.content.ComponentCallbacks;
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.util.Log;
 
+import java.util.List;
 import java.util.Map;
 
 /** Entry points called from patched X code. */
@@ -27,6 +29,11 @@ public final class Hooks {
 
     /** Replaced at patch time with the client event class and field names, see Engagement. */
     public static String clientEventSpec() {
+        return null;
+    }
+
+    /** Replaced at patch time with the version of this patch bundle, or left null. */
+    public static String version() {
         return null;
     }
 
@@ -75,7 +82,70 @@ public final class Hooks {
         }
     }
 
-    /** Called at the start of X's name row; returns the badge list to use. */
+    /** Set after the first failure to track badge lists, so a changed release can't spam the log. */
+    private static volatile boolean ownersBroken;
+
+    /** Called when X starts building the badge list of a user. */
+    public static void beginBadgeList(Object user) {
+        if (ownersBroken) return;
+        try {
+            BadgeOwners.begin(user);
+        } catch (Throwable t) {
+            ownersBroken = true;
+            Log.e(TAG, "Badges in headers are unavailable", t);
+        }
+    }
+
+    /** Called with the badge list X built since {@link #beginBadgeList}; returns the list to use. */
+    public static Object onBadgeList(Object list) {
+        if (ownersBroken) return list;
+        try {
+            return BadgeOwners.end(list);
+        } catch (Throwable t) {
+            ownersBroken = true;
+            Log.e(TAG, "Badges in headers are unavailable", t);
+            return list;
+        }
+    }
+
+    /** Called just before X builds the badge list of a post's author, with the AvailablePost. */
+    public static void onPostBadges(Object post) {
+        if (!ownersBroken) BadgeOwners.pendingPost(post);
+    }
+
+    /** Called just before a post header builds its author's badge list, with the post's time. */
+    public static void onPostTime(Object instant) {
+        if (!ownersBroken) BadgeOwners.pendingTime(instant);
+    }
+
+    private static void notePost(Object post) {
+        if (ownersBroken || post == null) return;
+        try {
+            BadgeOwners.post(post);
+        } catch (Throwable t) {
+            ownersBroken = true;
+            Log.e(TAG, "Badges in headers are unavailable", t);
+        }
+    }
+
+    /**
+     * Called when X's composer reads a share intent, with the intent and its action. Returns
+     * the composer arguments for a quote that the share sheet asked for, or null for X to
+     * handle the intent itself.
+     */
+    public static List<?> composerArgs(Intent intent, Object action) {
+        try {
+            return PostShareSheet.composerArgs(intent, action);
+        } catch (Throwable t) {
+            Log.e(TAG, "Failed to open the quote composer", t);
+            return null;
+        }
+    }
+
+    /**
+     * Called at the start of X's name row; returns the badge list to use. handle is null for
+     * rows that show none, such as the profile header.
+     */
     public static Object onNameRow(String handle, Object badges) {
         try {
             return NameBadges.onNameRow(handle, badges);
@@ -97,6 +167,7 @@ public final class Hooks {
      * {@link #HIDE}, or the modifier to use.
      */
     public static Object onPost(Object user, Object post, Object modifier, Object composer, Object padding, boolean focal) {
+        notePost(post);
         try {
             return PostFilters.onPost(user, post, modifier, composer, padding, focal);
         } catch (Throwable t) {
@@ -110,6 +181,7 @@ public final class Hooks {
      * the modifier and the composer. True when it drew X-Posed's collapsed quote instead.
      */
     public static boolean onQuote(Object user, Object post, Object modifier, Object composer) {
+        notePost(post);
         return Placeholders.quote(user, post, modifier, composer);
     }
 

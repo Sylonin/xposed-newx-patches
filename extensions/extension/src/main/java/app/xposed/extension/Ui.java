@@ -100,6 +100,38 @@ final class Ui {
         return b;
     }
 
+    /** Lets a pill's long label wrap at large text sizes instead of being cut off. */
+    TextView wrapping(TextView pill) {
+        pill.setSingleLine(false);
+        pill.setMaxLines(3);
+        pill.setPadding(pill.getPaddingLeft(), dp(10), pill.getPaddingRight(), dp(10));
+        return pill;
+    }
+
+    /**
+     * Buttons side by side in equal widths within [availablePx], or stacked when a label
+     * wouldn't fit, as with large text.
+     */
+    LinearLayout buttonRow(int availablePx, TextView... buttons) {
+        int gap = dp(12);
+        int widest = 0;
+        int unspecified = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
+        for (TextView b : buttons) {
+            b.measure(unspecified, unspecified);
+            widest = Math.max(widest, b.getMeasuredWidth());
+        }
+        boolean stack = widest * buttons.length + gap * (buttons.length - 1) > availablePx;
+        LinearLayout row = new LinearLayout(context);
+        row.setOrientation(stack ? LinearLayout.VERTICAL : LinearLayout.HORIZONTAL);
+        for (int i = 0; i < buttons.length; i++) {
+            LinearLayout.LayoutParams lp = stack ? matchWidth() : new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+            if (i > 0 && stack) lp.topMargin = gap;
+            else if (i > 0) lp.setMarginStart(gap);
+            row.addView(buttons[i], lp);
+        }
+        return row;
+    }
+
     /** Pressed feedback for full-width rows. */
     Drawable rowBackground() {
         return new RippleDrawable(ColorStateList.valueOf(pressed), null, new ColorDrawable(Color.WHITE));

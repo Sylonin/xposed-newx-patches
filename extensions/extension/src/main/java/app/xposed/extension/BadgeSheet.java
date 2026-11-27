@@ -2,17 +2,9 @@ package app.xposed.extension;
 
 import android.app.Dialog;
 import android.content.Context;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
-import android.graphics.drawable.GradientDrawable;
 import android.text.SpannableStringBuilder;
-import android.view.Gravity;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 
 import java.util.EnumMap;
@@ -29,17 +21,15 @@ final class BadgeSheet implements Lookup.Listener {
     private static final long FETCH_TIMEOUT_MS = 10_000;
     /** How long Copy and Save show their check mark and message. */
     private static final long DONE_MS = 3500;
-    /** Material's widest bottom sheet, for unfolded and large screens. */
-    private static final int MAX_WIDTH_DP = 640;
     /** Handles the sheet asked X about in this session, so reopening it doesn't ask again. Main thread. */
     private static final Set<String> fetched = new HashSet<>();
 
     private final Context context;
     private final String handle;
     private final Ui ui;
+    private final Sheet sheet;
     private final Dialog dialog;
     private final LinearLayout content;
-    private final int widthPx;
     private AccountCard card;
 
     private boolean fetching;
@@ -65,46 +55,10 @@ final class BadgeSheet implements Lookup.Listener {
         this.context = context;
         this.handle = handle;
         this.ui = new Ui(context);
-        dialog = new Dialog(context);
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        // TalkBack announces it when the sheet opens.
-        dialog.setTitle("Account details for @" + handle);
-
-        content = new LinearLayout(context);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(ui.dp(20), ui.dp(8), ui.dp(20), ui.dp(20));
-        int maxHeight = ui.dp(context.getResources().getConfiguration().screenHeightDp) * 9 / 10;
-        ScrollView scroll = new ScrollView(context) {
-            @Override
-            protected void onMeasure(int widthSpec, int heightSpec) {
-                // Leave the top of the screen showing, as a sheet does, and scroll the rest.
-                int limit = maxHeight;
-                if (MeasureSpec.getMode(heightSpec) != MeasureSpec.UNSPECIFIED) limit = Math.min(limit, MeasureSpec.getSize(heightSpec));
-                super.onMeasure(widthSpec, MeasureSpec.makeMeasureSpec(limit, MeasureSpec.AT_MOST));
-            }
-        };
-        GradientDrawable sheet = new GradientDrawable();
-        sheet.setColor(ui.background);
-        float r = ui.dp(16);
-        sheet.setCornerRadii(new float[]{r, r, r, r, 0, 0, 0, 0});
-        scroll.setBackground(sheet);
-        scroll.addView(content, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        dialog.setContentView(scroll);
-        // Keep the buttons clear of the gesture bar.
-        int bottom = ui.dp(20);
-        scroll.setOnApplyWindowInsetsListener((v, insets) -> {
-            content.setPadding(content.getPaddingLeft(), content.getPaddingTop(), content.getPaddingRight(),
-                    bottom + insets.getSystemWindowInsetBottom());
-            return insets;
-        });
-
-        widthPx = Math.min(ui.dp(context.getResources().getConfiguration().screenWidthDp), ui.dp(MAX_WIDTH_DP));
-        Window window = dialog.getWindow();
-        window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        window.setLayout(widthPx, ViewGroup.LayoutParams.WRAP_CONTENT);
-        window.setGravity(Gravity.BOTTOM);
-        window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-        window.setDimAmount(0.4f);
+        // TalkBack announces the title when the sheet opens.
+        sheet = new Sheet(context, ui, "Account details for @" + handle);
+        dialog = sheet.dialog;
+        content = sheet.content;
 
         dialog.setOnDismissListener(d -> {
             Lookup.removeListener(this);
@@ -146,7 +100,7 @@ final class BadgeSheet implements Lookup.Listener {
         AccountInfo info = Lookup.peek(handle);
         if (info == null) return;
         content.removeAllViews();
-        addGrabber();
+        sheet.addGrabber();
 
         AccountCard.Person person = Observed.person(handle);
         long knownId = Users.idFor(handle);
@@ -173,18 +127,6 @@ final class BadgeSheet implements Lookup.Listener {
         addActions();
         updateFetchViews();
         updateImageViews();
-    }
-
-    private void addGrabber() {
-        View grabber = new View(context);
-        GradientDrawable bar = new GradientDrawable();
-        bar.setColor(ui.divider);
-        bar.setCornerRadius(ui.dp(2));
-        grabber.setBackground(bar);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ui.dp(36), ui.dp(4));
-        lp.gravity = Gravity.CENTER_HORIZONTAL;
-        lp.bottomMargin = ui.dp(16);
-        content.addView(grabber, lp);
     }
 
     /**
@@ -240,12 +182,8 @@ final class BadgeSheet implements Lookup.Listener {
         }
     }
 
-    /** Lets a long label wrap at large text sizes instead of being cut off. */
     private TextView wrapping(TextView pill) {
-        pill.setSingleLine(false);
-        pill.setMaxLines(3);
-        pill.setPadding(pill.getPaddingLeft(), ui.dp(10), pill.getPaddingRight(), ui.dp(10));
-        return pill;
+        return ui.wrapping(pill);
     }
 
     private void addSpaced(View view) {
@@ -271,7 +209,7 @@ final class BadgeSheet implements Lookup.Listener {
             imagePills.put(action, pill);
             pills[i] = pill;
         }
-        content.addView(buttonRow(pills), Ui.matchWidth());
+        content.addView(sheet.buttonRow(pills), Ui.matchWidth());
         imageStatus = ui.text("", 13, false, ui.secondary);
         imageStatus.setPadding(0, ui.dp(8), 0, 0);
         imageStatus.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
@@ -324,7 +262,7 @@ final class BadgeSheet implements Lookup.Listener {
         });
         LinearLayout.LayoutParams lp = Ui.matchWidth();
         lp.topMargin = ui.dp(20);
-        content.addView(buttonRow(refresh, settings), lp);
+        content.addView(sheet.buttonRow(refresh, settings), lp);
     }
 
     private void updateFetchViews() {
@@ -333,27 +271,5 @@ final class BadgeSheet implements Lookup.Listener {
             refresh.setText(fetching ? "Refreshing…" : "Refresh from X");
             refresh.setEnabled(!fetching);
         }
-    }
-
-    /** Buttons side by side in equal widths, or stacked when a label wouldn't fit, as with large text. */
-    private LinearLayout buttonRow(TextView... buttons) {
-        int gap = ui.dp(12);
-        int available = widthPx - content.getPaddingLeft() - content.getPaddingRight();
-        int widest = 0;
-        int unspecified = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
-        for (TextView b : buttons) {
-            b.measure(unspecified, unspecified);
-            widest = Math.max(widest, b.getMeasuredWidth());
-        }
-        boolean stack = widest * buttons.length + gap * (buttons.length - 1) > available;
-        LinearLayout row = new LinearLayout(context);
-        row.setOrientation(stack ? LinearLayout.VERTICAL : LinearLayout.HORIZONTAL);
-        for (int i = 0; i < buttons.length; i++) {
-            LinearLayout.LayoutParams lp = stack ? Ui.matchWidth() : new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
-            if (i > 0 && stack) lp.topMargin = gap;
-            else if (i > 0) lp.setMarginStart(gap);
-            row.addView(buttons[i], lp);
-        }
-        return row;
     }
 }

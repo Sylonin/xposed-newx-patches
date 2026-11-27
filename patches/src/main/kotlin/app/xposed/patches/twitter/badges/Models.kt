@@ -119,6 +119,41 @@ internal fun BytecodePatchContext.writeModelBridge(user: UserModel, availablePos
     val repliedToHandle = canonicalFields.field("CanonicalPost", "repliedToUserScreenName", STRING)
     val quotedStatusId = canonicalFields.field("CanonicalPost", "quotedStatusId", postId.type)
 
+    // The post card: times, the text as X shows it, photos and action counts.
+    val instant = instantSeconds.definingClass
+    val postTime = postFields.field("AvailablePost", "timestamp", instant)
+    val canonicalTime = canonicalFields.field("CanonicalPost", "timestamp", instant)
+    val text = canonicalFields.field("CanonicalPost", "text", STRING)
+    val textRange = canonicalFields.field("CanonicalPost", "displayTextRange")
+    val rangeFields = toStringFields(DisplayTextRangeToStringFingerprint.matchSingle().originalMethod)
+    val rangeStart = rangeFields.field("DisplayTextRange", "startIdx", "I")
+    val rangeEnd = rangeFields.field("DisplayTextRange", "endIdx", "I")
+    requireDefinedIn(rangeStart, textRange.type)
+    requireDefinedIn(rangeEnd, textRange.type)
+    val postEntities = canonicalFields.field("CanonicalPost", "entityList")
+    requireDefinedIn(urls, postEntities.type)
+    val shortUrl = toStringFields(urlEntity.originalMethod).field("UrlEntity", "url", STRING)
+    val media = canonicalFields.field("CanonicalPost", "media")
+    val image = MediaContentImageToStringFingerprint.matchSingle()
+    val imageClass = image.originalClassDef.type
+    val imageFields = toStringFields(image.originalMethod)
+    val imageUrl = imageFields.field("MediaContentImage", "imageUrl", STRING)
+    val imageWidth = imageFields.field("MediaContentImage", "originalImgWidth", "J")
+    val imageHeight = imageFields.field("MediaContentImage", "originalImgHeight", "J")
+    val sensitiveWarning = imageFields.field("MediaContentImage", "sensitiveMediaWarning")
+    val actions = canonicalFields.field("CanonicalPost", "inlineActionEntry")
+    val entry = InlineActionEntryToStringFingerprint.matchSingle()
+    val entryClass = entry.originalClassDef.type
+    val entryFields = toStringFields(entry.originalMethod)
+    val actionType = entryFields.field("InlineActionEntry", "actionType")
+    val countedActions = enumConstants(actionType.type, "Reply", "Retweet", "UndoRetweet", "Favorite", "Unfavorite", "ViewCount")
+    val actionCount = entryFields.field("InlineActionEntry", "count", "Ljava/lang/Long;")
+    listOf(media, actions).forEach { list ->
+        if ("Ljava/util/List;" !in classDefBy(list.type).interfaces) throw PatchException("CanonicalPost.${list.name} isn't a List")
+    }
+    listOf(imageUrl, imageWidth, imageHeight, sensitiveWarning).forEach { requireDefinedIn(it, imageClass) }
+    listOf(actionType, actionCount).forEach { requireDefinedIn(it, entryClass) }
+
     requirePublic(
         name, bio, verifiedType, userLabel, entities, counts, pcf, friendship, following, labelDescription, urls,
         expandedUrl, followedByMe, location, website, tweetCounts, postId, viewer, postAuthor, quotePostState, postIdValue,
@@ -126,6 +161,9 @@ internal fun BytecodePatchContext.writeModelBridge(user: UserModel, availablePos
         avatar, avatarShape, isProtected, createdAt, square, followers, labelBadge, labelLink, *linkUrls.toTypedArray(),
         instantSeconds, instantNanos,
         *verification.values.toTypedArray(), *labels.values.toTypedArray(),
+        postTime, canonicalTime, text, textRange, rangeStart, rangeEnd, postEntities, shortUrl, media, imageClass,
+        imageUrl, imageWidth, imageHeight, sensitiveWarning, actions, entryClass, actionType, actionCount,
+        *countedActions.values.toTypedArray(),
     )
 
     fun stub(name: String, locals: Int, smali: String) = replaceStub(MODEL_BRIDGE_CLASS, name, locals, smali)
@@ -453,6 +491,133 @@ internal fun BytecodePatchContext.writeModelBridge(user: UserModel, availablePos
         """,
     )
 
+    fieldStub("postTime", availablePost.type, postTime)
+    fieldStub("canonicalTime", canonicalClass, canonicalTime)
+    fieldStub("postText", canonicalClass, text)
+    fieldStub("postMedia", canonicalClass, media)
+    fieldStub("postActions", canonicalClass, actions)
+    fun rangeStub(name: String, bound: FieldReference) = stub(
+        name, 1,
+        """
+        check-cast p0, $canonicalClass
+        iget-object v0, p0, ${textRange.descriptor}
+        if-eqz v0, :none
+        iget v0, v0, ${bound.descriptor}
+        return v0
+        :none
+        const/4 v0, -0x1
+        return v0
+        """,
+    )
+    rangeStub("textStart", rangeStart)
+    rangeStub("textEnd", rangeEnd)
+    stub(
+        "postLinks", 1,
+        """
+        check-cast p0, $canonicalClass
+        iget-object v0, p0, ${postEntities.descriptor}
+        if-eqz v0, :none
+        iget-object v0, v0, ${urls.descriptor}
+        return-object v0
+        :none
+        const/4 v0, 0x0
+        return-object v0
+        """,
+    )
+    stub(
+        "linkUrl", 1,
+        """
+        instance-of v0, p0, $urlEntityClass
+        if-eqz v0, :none
+        check-cast p0, $urlEntityClass
+        iget-object v0, p0, ${shortUrl.descriptor}
+        return-object v0
+        :none
+        const/4 v0, 0x0
+        return-object v0
+        """,
+    )
+    stub(
+        "photoUrl", 1,
+        """
+        instance-of v0, p0, $imageClass
+        if-eqz v0, :none
+        check-cast p0, $imageClass
+        iget-object v0, p0, ${imageUrl.descriptor}
+        return-object v0
+        :none
+        const/4 v0, 0x0
+        return-object v0
+        """,
+    )
+    fun sizeStub(name: String, field: FieldReference) = stub(
+        name, 2,
+        """
+        instance-of v0, p0, $imageClass
+        if-eqz v0, :unknown
+        check-cast p0, $imageClass
+        iget-wide v0, p0, ${field.descriptor}
+        return-wide v0
+        :unknown
+        const-wide/16 v0, 0x0
+        return-wide v0
+        """,
+    )
+    sizeStub("photoWidth", imageWidth)
+    sizeStub("photoHeight", imageHeight)
+    stub(
+        "photoSensitive", 1,
+        """
+        instance-of v0, p0, $imageClass
+        if-eqz v0, :no
+        check-cast p0, $imageClass
+        iget-object v0, p0, ${sensitiveWarning.descriptor}
+        if-eqz v0, :no
+        const/4 v0, 0x1
+        return v0
+        :no
+        const/4 v0, 0x0
+        return v0
+        """,
+    )
+    stub(
+        "actionName", 2,
+        """
+        instance-of v0, p0, $entryClass
+        if-eqz v0, :none
+        check-cast p0, $entryClass
+        iget-object v0, p0, ${actionType.descriptor}
+        ${countedActions.entries.joinToString("\n") { (name, constant) ->
+            """
+            sget-object v1, ${constant.descriptor}
+            if-ne v0, v1, :not_$name
+            const-string v0, "$name"
+            return-object v0
+            :not_$name
+            """
+        }}
+        :none
+        const/4 v0, 0x0
+        return-object v0
+        """,
+    )
+    stub(
+        "actionCount", 2,
+        """
+        instance-of v0, p0, $entryClass
+        if-eqz v0, :unknown
+        check-cast p0, $entryClass
+        iget-object v0, p0, ${actionCount.descriptor}
+        if-eqz v0, :unknown
+        invoke-virtual { v0 }, Ljava/lang/Long;->longValue()J
+        move-result-wide v0
+        return-wide v0
+        :unknown
+        const-wide/16 v0, -0x1
+        return-wide v0
+        """,
+    )
+    writeQuoteArgs(postId.type)
     hookConstructors(canonicalClass, "onCanonicalPost")
     hookConstructors(profileClass, "onProfileUser")
 }

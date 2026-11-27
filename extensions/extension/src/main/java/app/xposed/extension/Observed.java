@@ -38,6 +38,8 @@ final class Observed {
     static final PostRelations RELATIONS = new PostRelations();
     /** The last user model X showed per handle, or its copy once the account sheet read it. */
     private static final Map<String, Object> users = lru(300);
+    /** The latest CanonicalPost per id, for the post card. X keeps the posts it shows; these are the newest. */
+    private static final Map<Long, Object> posts = lru(300);
     private static volatile long viewer;
 
     private Observed() {
@@ -137,6 +139,9 @@ final class Observed {
     static void canonicalPost(Object post) {
         long id = ModelBridge.canonicalPostId(post);
         if (id == 0) return;
+        synchronized (posts) {
+            posts.put(id, post);
+        }
         String language = ModelBridge.language(post);
         if (language != null) {
             synchronized (languages) {
@@ -156,6 +161,13 @@ final class Observed {
         if (postId == 0) return null;
         synchronized (languages) {
             return languages.get(postId);
+        }
+    }
+
+    /** The CanonicalPost X made last for a post, or null when it's no longer among the recent ones. */
+    static Object canonicalPost(long postId) {
+        synchronized (posts) {
+            return posts.get(postId);
         }
     }
 

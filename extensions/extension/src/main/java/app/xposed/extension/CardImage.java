@@ -38,8 +38,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
- * The account card as a PNG in X's current theme, as X-Posed's Copy and Save make it: copied to
- * the clipboard, saved to Pictures/X-Posed or shared. It is made on the phone and uploaded nowhere.
+ * The account card and the post card as PNGs in X's current theme, as X-Posed's Copy and Save
+ * make them: copied to the clipboard, saved to Pictures/X-Posed, shared, or handed to X's
+ * composer. They are made on the phone and uploaded nowhere unless the user posts them.
  */
 final class CardImage {
     enum Action {
@@ -62,9 +63,31 @@ final class CardImage {
         void onDone(String message, boolean failed);
     }
 
+    interface UriCallback {
+        /** Main thread. uri is null when the image couldn't be written; then message says why. */
+        void onUri(Uri uri, String message);
+    }
+
+    /** What an image shows, for messages, the clipboard and the share sheet. */
+    static final class Subject {
+        final String noun, clipLabel, shareTitle, shareText;
+
+        /** shareText goes with the image to the app it is shared to, or null. */
+        Subject(String noun, String clipLabel, String shareTitle, String shareText) {
+            this.noun = noun;
+            this.clipLabel = clipLabel;
+            this.shareTitle = shareTitle;
+            this.shareText = shareText;
+        }
+    }
+
+    private static final Subject ACCOUNT_CARD = new Subject("card image", "Account card", "Share account card", null);
+
     private static final String TAG = Hooks.TAG;
     private static final int WIDTH_DP = 400;
     private static final double MAX_PIXELS = 8_000_000;
+    /** Below this scale the text of a long post would be too small to read in the image. */
+    static final float MIN_POST_SCALE = 0.5f;
     private static final String ALBUM = "X-Posed";
     /** Under the cache directory that X's FileProvider serves. */
     private static final String DIR = "xposed-cards";
@@ -134,13 +157,22 @@ final class CardImage {
     private static void render(Context context, AccountCard card, Action action, Callback callback) {
         Bitmap bitmap;
         try {
-            bitmap = draw(context, card);
+            Ui ui = new Ui(context);
+            bitmap = draw(context, AccountCardView.build(ui, card, false), 0);
         } catch (RuntimeException | OutOfMemoryError e) {
             Log.e(TAG, "Couldn't draw the card image", e);
             callback.onDone("Couldn't create the card image.", true);
             return;
         }
-        String name = fileName(card.handle);
+        write(context, bitmap, fileName(card.handle), action, ACCOUNT_CARD, true, callback);
+    }
+
+    /**
+     * Copies, saves or shares [bitmap] as [name]; recycles it afterwards when [recycle] is set.
+     * Main thread.
+     */
+    static void write(Context context, Bitmap bitmap, String name, Action action, Subject subject, boolean recycle,
+                      Callback callback) {
         io.execute(() -> {
             Uri uri = null;
             IOException error = null;
@@ -155,21 +187,41 @@ final class CardImage {
             } catch (RuntimeException e) {
                 error = new IOException(e);
             } finally {
-                bitmap.recycle();
+                if (recycle) bitmap.recycle();
             }
             Uri result = uri;
             IOException failure = error;
-            main.post(() -> finish(context, action, result, failure, callback));
+            main.post(() -> finish(context, action, result, failure, subject, callback));
         });
     }
 
-    private static void finish(Context context, Action action, Uri uri, IOException error, Callback callback) {
+    /** Writes [bitmap] where X's FileProvider serves it, for X's own composer. Main thread. */
+    static void shared(Context context, Bitmap bitmap, String name, UriCallback callback) {
+        io.execute(() -> {
+            Uri uri = null;
+            String message = null;
+            try {
+                uri = writeShared(context, bitmap, name);
+            } catch (NoFileProvider e) {
+                message = "This version of X can't attach the image. Save it and add it in X instead.";
+            } catch (IOException | RuntimeException e) {
+                Log.w(TAG, "Couldn't write the image", e);
+                message = "Couldn't create the image.";
+            }
+            Uri result = uri;
+            String failure = message;
+            main.post(() -> callback.onUri(result, failure));
+        });
+    }
+
+    private static void finish(Context context, Action action, Uri uri, IOException error, Subject subject, Callback callback) {
         if (error != null) {
-            Log.w(TAG, "Couldn't " + action.label.toLowerCase(Locale.ROOT) + " the card image", error);
+            Log.w(TAG, "Couldn't " + action.label.toLowerCase(Locale.ROOT) + " the " + subject.noun, error);
             if (error instanceof NoFileProvider) {
                 callback.onDone("This version of X can't hand images to other apps. Use Save instead.", true);
             } else {
-                callback.onDone(action == Action.SAVE ? "Couldn't save the card image." : "Couldn't create the card image.", true);
+                callback.onDone(action == Action.SAVE ? "Couldn't save the " + subject.noun + "."
+                        : "Couldn't create the " + subject.noun + ".", true);
             }
             return;
         }
@@ -180,24 +232,25 @@ final class CardImage {
             case COPY:
                 try {
                     ClipboardManager clipboard = context.getSystemService(ClipboardManager.class);
-                    clipboard.setPrimaryClip(ClipData.newUri(context.getContentResolver(), "Account card", uri));
+                    clipboard.setPrimaryClip(ClipData.newUri(context.getContentResolver(), subject.clipLabel, uri));
                 } catch (RuntimeException e) {
-                    Log.w(TAG, "Couldn't copy the card image", e);
-                    callback.onDone("Couldn't copy the card image. Use Save or Share instead.", true);
+                    Log.w(TAG, "Couldn't copy the " + subject.noun, e);
+                    callback.onDone("Couldn't copy the " + subject.noun + ". Use Save or Share instead.", true);
                     return;
                 }
                 // Android 13 and newer confirm copies themselves.
-                callback.onDone(Build.VERSION.SDK_INT < 33 ? "Card copied. Paste it wherever images are supported." : null, false);
+                callback.onDone(Build.VERSION.SDK_INT < 33 ? "Copied. Paste it wherever images are supported." : null, false);
                 return;
             default:
                 Intent send = new Intent(Intent.ACTION_SEND)
                         .setType("image/png")
                         .putExtra(Intent.EXTRA_STREAM, uri)
                         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                if (subject.shareText != null) send.putExtra(Intent.EXTRA_TEXT, subject.shareText);
                 // The chooser previews the image and passes the read grant on from the clip.
                 send.setClipData(ClipData.newRawUri(null, uri));
                 try {
-                    context.startActivity(Intent.createChooser(send, "Share account card"));
+                    context.startActivity(Intent.createChooser(send, subject.shareTitle));
                     callback.onDone(null, false);
                 } catch (ActivityNotFoundException e) {
                     callback.onDone("No app can share images.", true);
@@ -205,8 +258,11 @@ final class CardImage {
         }
     }
 
-    /** The card in X's theme, about as wide as a phone screen. Main thread. */
-    private static Bitmap draw(Context context, AccountCard card) {
+    /**
+     * [content] framed in X's theme, about as wide as a phone screen. Scaled down to the pixel
+     * limit, or null when that would scale it below [minScale]. Main thread.
+     */
+    static Bitmap draw(Context context, View content, float minScale) {
         Ui ui = new Ui(context);
         LinearLayout frame = new LinearLayout(context);
         frame.setOrientation(LinearLayout.VERTICAL);
@@ -215,7 +271,7 @@ final class CardImage {
         int pad = ui.dp(20);
         frame.setPadding(pad, pad, pad, pad);
         frame.setBackgroundColor(ui.background);
-        frame.addView(AccountCardView.build(ui, card, false), Ui.matchWidth());
+        frame.addView(content, Ui.matchWidth());
 
         int width = ui.dp(WIDTH_DP);
         frame.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
@@ -223,6 +279,7 @@ final class CardImage {
         int height = frame.getMeasuredHeight();
         frame.layout(0, 0, width, height);
         float scale = (float) Math.min(1, Math.sqrt(MAX_PIXELS / ((double) width * height)));
+        if (scale < minScale) return null;
         Bitmap bitmap = Bitmap.createBitmap(Math.max(1, Math.round(width * scale)), Math.max(1, Math.round(height * scale)),
                 Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
