@@ -115,9 +115,12 @@ These rules keep the patch safe across X releases. Follow them for every new hoo
   enum constants.
 - "Continue to X" sends `ACTION_SEND` with the card image to the activity alias whose name
   ends in `.ComposerActivity` (`com.twitter.composer.ComposerActivity`, exported for
-  `image/*` and `text/plain`). X's own handler (`com.x.composer.deeplink.a`, found by the
-  strings `"replied_tweet_id"` and `"android.intent.action.SEND_MULTIPLE"`) opens a reply
-  when the intent has a `replied_tweet_id` extra, and a new post otherwise.
+  `image/*` and `text/plain`). X's own handler (`com.x.composer.deeplink.a`) opens a reply
+  when the intent has a `replied_tweet_id` extra, and a new post otherwise. The patch finds it
+  as the `invoke(Object)` with the string `"android.intent.action.SEND_MULTIPLE"` whose class
+  holds one `Intent` and which reads `"replied_tweet_id"` itself (12.40) or calls a method
+  that does (12.41). In 12.41 the class also serves a second lambda, which gets a deeplink
+  route instead of the action, so the hook answers only when the argument is `SEND`.
 - X's share handling has no quotes. The handler first calls
   `Hooks.composerArgs(intent, action)`. When the intent has `app.xposed.extra.QUOTED_POST_ID`,
   it returns X's `QuoteAPost` (from `"QuoteAPost(quotedPostId="`) with the quoted post, the
