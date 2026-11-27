@@ -19,6 +19,9 @@ These rules keep the patch safe across X releases. Follow them for every new hoo
   the logic lives in Java. Members the extension needs are reached through stubs whose bodies
   the patch writes (`ComposeBridge`, `ModelBridge`), not through reflection, so `d8` checks
   every reference.
+- In stub smali, give each path its own `return`. ART's verifier types a register that two
+  paths write as their common superclass, and returning that as `String` rejects the whole
+  stub class: every call into it then throws `VerifyError`. `d8` doesn't catch this.
 - Every hook catches its exceptions and falls back to X's own behaviour, so X's code path runs
   unchanged. Hooks called for every model object also turn their feature off after the first
   failure, so a changed release can't flood the log.
@@ -26,7 +29,11 @@ These rules keep the patch safe across X releases. Follow them for every new hoo
   details stay in memory. The one change to X's requests: while a saved filter needs profile
   details, X's own timeline queries ask for them (see "Profile details in timelines").
 - Verify each change: patch the APKM alone and together with piko, run `d8` on the patched
-  dex files, and decompile the injected code with jadx to check the resolved members.
+  dex files, and decompile the injected code with jadx to check the resolved members. Then
+  run ART's verifier: sign the patched APK, install it on an emulator, run `adb shell cmd
+  package delete-dexopt com.twitter.android`, clear logcat, run `adb shell cmd package compile
+  -m verify -f com.twitter.android`, and check that `adb logcat -d | grep "dex2oat.*Verification
+  error"` names no `app.xposed` class and no class the patch changed.
 - Unit-test pure logic in `extensions/extension/src/test`.
 - Never commit decompiled X code.
 

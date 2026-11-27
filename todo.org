@@ -127,6 +127,10 @@ compared against X-Posed 4.4.0 (commit 7e93b04, 2026-11-08). Upstream paths are 
   "Blocking" link to X's sidebar, with a setting to hide it.
 - [ ] Quick Hide/Highlight switch. Upstream offers it as a keyboard shortcut and in its popup.
 - [ ] About: links to X-Posed's GitHub, privacy policy, issue tracker and support page.
+- [ ] Testing with a signed-in account (requested; later). Rather than exporting X's login
+  tokens from a published patch, which would let anyone holding the file use the account,
+  install a separately named test copy of X over adb, sign into it once, and update it in
+  place after each change.
 
 * Not applicable on Android
 - Opening account details on hover, the 300 ms hover delay and "Open details on click": on a
