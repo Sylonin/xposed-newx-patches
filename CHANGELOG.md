@@ -1,3 +1,9 @@
+## [4.3.1](https://github.com/Sylonin/xposed-newx-patches/compare/v4.3.0...v4.3.1) (2026-11-27)
+
+### 🐛 Bug Fixes
+
+* make filters work on devices ([a9a5300](https://github.com/Sylonin/xposed-newx-patches/commit/a9a53006f8ab2bd1a3aa1de5f7eb0e6269f32eb6))
+
 ## [4.3.0](https://github.com/Sylonin/xposed-newx-patches/compare/v4.2.0...v4.3.0) (2026-11-26)
 
 ### ✨ New Features
