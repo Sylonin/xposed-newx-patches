@@ -108,7 +108,7 @@ image server. "Open in X" opens X's own composer and posts nothing by itself.
 ## Patches
 
 <!-- PATCHES_START EXPANDED -->
-> **[v4.5.1](https://github.com/Sylonin/xposed-newx-patches/releases/tag/v4.5.1)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;1 patches total
+> **[v4.5.2](https://github.com/Sylonin/xposed-newx-patches/releases/tag/v4.5.2)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;1 patches total
 <details open>
 <summary>📦 NewX&nbsp;&nbsp;•&nbsp;&nbsp;1 patch</summary>
 <br>

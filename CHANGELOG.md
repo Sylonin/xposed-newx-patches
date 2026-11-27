@@ -1,3 +1,10 @@
+## [4.5.2](https://github.com/Sylonin/xposed-newx-patches/compare/v4.5.1...v4.5.2) (2026-11-27)
+
+### 🐛 Bug Fixes
+
+* explain posting to X in the share sheet ([80530db](https://github.com/Sylonin/xposed-newx-patches/commit/80530db1fbd005b28090aba8c6b1bf6a94b1884b))
+* show badges at full size in profile and chat headers ([733b33c](https://github.com/Sylonin/xposed-newx-patches/commit/733b33c8c9495ed9e99f5877c78780def9a4d8da))
+
 ## [4.5.1](https://github.com/Sylonin/xposed-newx-patches/compare/v4.5.0...v4.5.1) (2026-11-27)
 
 ### 🐛 Bug Fixes
