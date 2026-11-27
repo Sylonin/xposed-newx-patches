@@ -55,7 +55,11 @@ final class Filters {
         final Map<String, Profile> profiles;
         /** X user id to the id of the profile that account uses. */
         final Map<Long, String> accounts;
-        /** The profile used while the signed-in account is unknown. */
+        /**
+         * The profile last selected on this device. Accounts that never chose one use it, as
+         * does the app while it doesn't know the signed-in account yet. X-Posed learns that
+         * account from the first post shown, so a choice made before then still applies.
+         */
         final String editor;
 
         State(Map<String, Profile> profiles, Map<Long, String> accounts, String editor) {
@@ -86,10 +90,10 @@ final class Filters {
             return editor;
         }
 
-        /** The profile an X account uses: its own choice, else Default. */
+        /** The profile an X account uses: its own choice, else the last one selected. 0 is an unknown account. */
         String profileFor(long account) {
-            String id = accounts.get(account);
-            return id != null ? id : DEFAULT_ID;
+            String id = account != 0 ? accounts.get(account) : null;
+            return id != null && profiles.containsKey(id) ? id : editor;
         }
 
         String toJson() {
@@ -132,7 +136,7 @@ final class Filters {
         return active().rules;
     }
 
-    /** The profile of the signed-in account, Default when it has none. */
+    /** The profile of the signed-in account; see {@link State#profileFor}. */
     static Profile active() {
         State s = state();
         return s.profiles.get(activeId(s));
@@ -150,9 +154,7 @@ final class Filters {
     }
 
     private static String activeId(State s) {
-        long viewer = Observed.viewer();
-        String id = viewer != 0 ? s.accounts.get(viewer) : s.editor;
-        return id != null && s.profiles.containsKey(id) ? id : DEFAULT_ID;
+        return s.profileFor(Observed.viewer());
     }
 
     /** Applies an edit to the active profile, saves it and returns the new filters. */

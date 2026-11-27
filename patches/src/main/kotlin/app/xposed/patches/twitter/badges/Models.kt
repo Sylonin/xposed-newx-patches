@@ -190,6 +190,8 @@ internal fun BytecodePatchContext.writeModelBridge(user: UserModel, availablePos
         return v0
         """,
     )
+    // Each path returns its own register: ART types a register merged from the label and its
+    // String field as Object, and rejects the whole bridge class for returning that as String.
     stub(
         "affiliation", 1,
         """
@@ -197,7 +199,9 @@ internal fun BytecodePatchContext.writeModelBridge(user: UserModel, availablePos
         move-result-object v0
         if-eqz v0, :none
         iget-object v0, v0, ${labelDescription.descriptor}
+        return-object v0
         :none
+        const/4 v0, 0x0
         return-object v0
         """,
     )
@@ -208,7 +212,9 @@ internal fun BytecodePatchContext.writeModelBridge(user: UserModel, availablePos
         move-result-object v0
         if-eqz v0, :none
         iget-object v0, v0, ${urls.descriptor}
+        return-object v0
         :none
+        const/4 v0, 0x0
         return-object v0
         """,
     )

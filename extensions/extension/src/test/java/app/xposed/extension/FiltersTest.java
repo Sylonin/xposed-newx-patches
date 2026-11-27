@@ -42,6 +42,18 @@ public class FiltersTest {
     }
 
     @Test
+    public void accountsWithoutAChoiceUseTheLastSelectedProfile() {
+        Filters.State s = Filters.parse("{\"profiles\":["
+                + "{\"id\":\"default\",\"name\":\"Default\",\"rules\":{}},"
+                + "{\"id\":\"us\",\"name\":\"US\",\"rules\":{\"locations\":[\"United States\"]}}],"
+                + "\"accounts\":{\"12\":\"default\"},\"editor\":\"us\"}");
+        assertEquals("default", s.profileFor(12));
+        // Selected while X-Posed didn't know the account yet: it still applies once it does.
+        assertEquals("us", s.profileFor(99));
+        assertEquals("us", s.profileFor(0));
+    }
+
+    @Test
     public void savedProfilesRoundTrip() {
         Filters.State s = Filters.parse("{\"profiles\":["
                 + "{\"id\":\"default\",\"name\":\"Default\",\"rules\":{}},"
