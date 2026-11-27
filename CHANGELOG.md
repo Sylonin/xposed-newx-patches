@@ -1,3 +1,9 @@
+## [4.5.0](https://github.com/Sylonin/xposed-newx-patches/compare/v4.4.0...v4.5.0) (2026-11-27)
+
+### ✨ New Features
+
+* show badges in profile and chat headers and share posts as images ([5dd1acc](https://github.com/Sylonin/xposed-newx-patches/commit/5dd1acc2f3cc6404c311f9b6ea264b7b5f334ec8))
+
 ## [4.4.0](https://github.com/Sylonin/xposed-newx-patches/compare/v4.3.1...v4.4.0) (2026-11-27)
 
 ### ✨ New Features

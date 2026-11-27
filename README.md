@@ -107,14 +107,14 @@ image server. "Continue to X" opens X's own composer and posts nothing by itself
 ## Patches
 
 <!-- PATCHES_START EXPANDED -->
-> **[v4.4.0](https://github.com/Sylonin/xposed-newx-patches/releases/tag/v4.4.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;1 patches total
+> **[v4.5.0](https://github.com/Sylonin/xposed-newx-patches/releases/tag/v4.5.0)**&nbsp;&nbsp;•&nbsp;&nbsp;`main`&nbsp;&nbsp;•&nbsp;&nbsp;1 patches total
 <details open>
 <summary>📦 NewX&nbsp;&nbsp;•&nbsp;&nbsp;1 patch</summary>
 <br>
 
 | 💊&nbsp;Patch | 📜&nbsp;Description | ⚙️&nbsp;Options |
 |----------|----------------|-----------|
-| [Account location badges](#account-location-badges) | Shows X-Posed style country badges next to names and highlights or hides posts from chosen countries, without reporting passive engagement with them. Data comes from the X-Posed community cache, falling back to X's "About this account". Tap a badge for account details and settings. |  |
+| [Account location badges](#account-location-badges) | Shows X-Posed style country badges next to names, in profile and chat headers, and highlights or hides posts from chosen countries, without reporting passive engagement with them. Data comes from the X-Posed community cache, falling back to X's "About this account". Tap a badge for account details and settings. Posts can be shared as images. |  |
 
 </details>
 
