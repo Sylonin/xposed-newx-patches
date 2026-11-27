@@ -82,20 +82,20 @@ compared against X-Posed 4.4.0 (commit 7e93b04, 2026-11-08). Upstream paths are 
 - [X] Always Show button.
 - [X] Copy or save the sheet as a PNG, in light or dark. Share was added as well.
 
-* TODO Badges and surfaces [0/4]
-- [ ] Badges in the profile page header. It is not hooked today (see =docs/HOOKS.md=).
-- [ ] Chat: badges in one-to-one chat headers, inbox rows and message requests. The README
+* DONE Badges and surfaces [4/4]
+- [X] Badges in the profile page header. It is not hooked today (see =docs/HOOKS.md=).
+- [X] Chat: badges in one-to-one chat headers, inbox rows and message requests. The README
   says badges appear in messages; check which of these three are covered.
-- [ ] Share button on badges, with a setting to hide it (see Sharing).
-- [ ] Defaults: upstream shows device icons and the location warning icon by default. Both are
+- [X] Share button on badges, with a setting to hide it (see Sharing).
+- [X] Defaults: upstream shows device icons and the location warning icon by default. Both are
   off here. Decide whether to match.
 
-* TODO Sharing [0/2]
-- [ ] Post card: render a post as an image with its text, up to four uncropped photos,
+* DONE Sharing [2/2]
+- [X] Post card: render a post as an image with its text, up to four uncropped photos,
   metrics, account context (flag, connection, location warning), post and capture times, an
   ID-based post link and the version. Upstream: =content/post-card.js=,
   =content/evidence-capture.js=.
-- [ ] Share flow: a preview with an editable caption, then Quote, Reply or New post through
+- [X] Share flow: a preview with an editable caption, then Quote, Reply or New post through
   X's composer, or save the image. Nothing is posted without the user. Offer Android's share
   sheet as well.
 

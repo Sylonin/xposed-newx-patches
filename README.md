@@ -19,10 +19,11 @@ producing a broken app if something doesn't match.
 
 ## Features
 
-- **Badges**: X-Posed's badge after names in post and reply headers, quotes, user lists, sheets and
-  messages: country flag, optional device icon and location-warning shield, and the circled-i.
-  X draws it as one of the name's badges, next to the verified badge. Badges are not shown on
-  the profile page header.
+- **Badges**: X-Posed's badge after names in post and reply headers, quotes, user lists, sheets,
+  the profile page header, and messages (chat headers, the inbox and message requests): country
+  flag, device icon, location-warning shield, and the circled-i. Device icons and the shield
+  are on by default, as in X-Posed. X draws the badge as one of the name's badges, next to the
+  verified badge.
 - **Account sheet**: tap a badge for X-Posed's account card. It shows the profile picture,
   name and checkmark (blue, gold for organizations, grey for government), "Identity
   verified" and "Protected", the country, connection source and location accuracy, and
@@ -33,6 +34,12 @@ producing a broken app if something doesn't match.
   has none. Copy, save (to Pictures/X-Posed) or share the card as an image in X's current
   theme. From the sheet, highlight or hide posts from that country or from the account
   itself, or add the account to Always Show.
+- **Share posts**: turn on "Show share button" in the badge settings for a button after the
+  badge on posts. It makes an image of the post as X-Posed's evidence card: author, text,
+  up to four photos, date and counts, and what X reports about the account's location and
+  connection, with the post's link and the capture time in UTC. Copy, save or share the
+  image, or write a caption and continue to X's composer as a quote, reply or new post with
+  the image attached. Nothing is posted until you post it in X.
 - **Filters**: highlight (default) or hide posts and replies, as in X-Posed's Blocking
   settings, by:
   - country, or X region label with optional member countries;
@@ -93,6 +100,9 @@ the sheet lacks the account's history, as X's own "About this account" page does
 loads profile pictures and affiliation badges from X's image server (`pbs.twimg.com`) and
 keeps them in memory only. Card images are made on the device. Copy and Share hand them to
 other apps through X's own file provider; Save adds them to Pictures/X-Posed.
+
+Post cards use only what X already loaded for the post. The photos on them load from X's
+image server. "Continue to X" opens X's own composer and posts nothing by itself.
 
 ## Patches
 
