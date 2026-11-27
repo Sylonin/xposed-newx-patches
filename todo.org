@@ -112,7 +112,7 @@ compared against X-Posed 4.4.0 (commit 7e93b04, 2026-11-08). Upstream paths are 
 - [ ] Show the cache's total size from =GET /stats=.
 - [ ] "Sync local cache to cloud": upload the local cache in batches of 25.
 
-* TODO Data and settings [0/9]
+* TODO Data and settings [0/10]
 - [ ] Export and import a backup: settings, filter profiles and lists, Always Show,
   community-cache preference and the local account cache. Skip invalid or outdated cache
   entries on import. Upstream: =shared/backup.js= (format 2.5).
