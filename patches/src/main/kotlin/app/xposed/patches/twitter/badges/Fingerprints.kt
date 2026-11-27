@@ -156,12 +156,20 @@ internal object QuoteAPostToStringFingerprint : Fingerprint(
     strings = listOf("QuoteAPost(quotedPostId="),
 )
 
-/** The composer's handling of share intents: SEND and SEND_MULTIPLE, with X's reply extra. */
+/** Code that reads X's reply extra from a share intent. */
+internal object ReplyExtraFingerprint : Fingerprint(
+    strings = listOf("replied_tweet_id"),
+)
+
+/**
+ * Candidates for the composer's handling of share intents (SEND and SEND_MULTIPLE). X 12.40 reads
+ * the reply extra in the handler itself, 12.41 in a helper it calls.
+ */
 internal object ComposerShareIntentFingerprint : Fingerprint(
     name = "invoke",
     returnType = "Ljava/lang/Object;",
     parameters = listOf("Ljava/lang/Object;"),
-    strings = listOf("replied_tweet_id", "android.intent.action.SEND_MULTIPLE"),
+    strings = listOf("android.intent.action.SEND_MULTIPLE"),
 )
 
 /** The client event reporter every LogEvent goes through. */

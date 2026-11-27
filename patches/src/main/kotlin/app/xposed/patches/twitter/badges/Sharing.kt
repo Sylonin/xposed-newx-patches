@@ -22,6 +22,7 @@ import app.xposed.patches.twitter.util.methodRef
 import app.xposed.patches.twitter.util.replaceStub
 import app.xposed.patches.twitter.util.requireLocals
 import app.xposed.patches.twitter.util.single
+import app.xposed.patches.twitter.util.stringRef
 import app.xposed.patches.twitter.util.toStringFields
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -149,9 +150,17 @@ internal fun BytecodePatchContext.hookPostAuthorBadges(author: FieldReference, b
  * intent in Quote mode with X's quote arguments.
  */
 internal fun BytecodePatchContext.hookQuoteComposer() {
-    val match = ComposerShareIntentFingerprint.matchSingle()
-    val intent = match.originalClassDef.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == "Landroid/content/Intent;" }
-        .single("Intent field of ${match.originalClassDef.type}")
+    val replyReaders = ReplyExtraFingerprint.matchAll().map { it.originalMethod.descriptor }.toSet()
+    val intentFields = { classDef: ClassDef ->
+        classDef.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == "Landroid/content/Intent;" }
+    }
+    // The handler holds the intent and reads the reply extra, itself or through a helper.
+    val match = ComposerShareIntentFingerprint.matchAll().filter { candidate ->
+        intentFields(candidate.originalClassDef).size == 1 && candidate.originalMethod.instructionList.any {
+            it.stringRef == "replied_tweet_id" || it.methodRef?.descriptor in replyReaders
+        }
+    }.single("composer share intent handler")
+    val intent = intentFields(match.originalClassDef).single()
     match.method.apply {
         requireLocals(2)
         addInstructionsWithLabels(
